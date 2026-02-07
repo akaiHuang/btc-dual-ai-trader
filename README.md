@@ -9,7 +9,13 @@
 
 ---
 
-## Why This Exists
+## 📋 Quick Summary
+
+> 💰 這是一套**雙 AI 加密貨幣自動交易系統**，採用「雲端 + 本地」雙引擎架構：**GPT-4（代號 Wolf）**負責戰略層級的市場分析、鯨魚行為追蹤與宏觀市場結構判斷；**Kimi K2（代號 Dragon）**透過 Ollama 在本地運行，負責零延遲的即時交易決策。🤖 雙 AI 之外，還搭配 **XGBoost / LightGBM** 機器學習模型，以 5.9 年、308 萬根 K 線的歷史數據訓練。🎭 系統內建五種交易人格（Whale Hunter、Dragon、Wolf、Lion、Shrimp），各自針對不同市場狀態和風險偏好優化。📊 核心技術亮點包括**微觀結構分析**（VPIN 毒性指標、簽名成交量、深度價差）、**清算連鎖偵測**、**三層決策系統**（訊號層 → 市場狀態層 → 執行層）。🔧 支援 Binance 期貨與 dYdX v4 交易所，含紙上交易、回測與實盤三種模式。包含 **187 個策略腳本**和 **198+ 回測配置**。適合對**量化交易、AI 投資策略、加密貨幣市場微觀結構**有興趣的開發者。
+
+---
+
+## 🤔 Why This Exists
 
 Single-model trading bots are inherently limited. One AI cannot simultaneously excel at high-level market regime detection, microstructure analysis, and split-second execution decisions. And rule-based systems cannot adapt to shifting market conditions.
 
@@ -21,7 +27,7 @@ Built from hundreds of hours of strategy research, 198+ backtested configuration
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
                     +------------------+
@@ -83,7 +89,7 @@ Built from hundreds of hours of strategy research, 198+ backtested configuration
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 btc-dual-ai-trader/
@@ -113,7 +119,7 @@ btc-dual-ai-trader/
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -134,7 +140,7 @@ btc-dual-ai-trader/
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Paper Trading (Recommended First Step)
 
@@ -175,7 +181,7 @@ python main.py --mode backtest --strategy BTCHighFreq
 
 ---
 
-## Key Metrics
+## 📊 Key Metrics
 
 | Metric | Value |
 |--------|-------|
@@ -190,7 +196,7 @@ python main.py --mode backtest --strategy BTCHighFreq
 
 ---
 
-## Documentation
+## 📚 Documentation
 
 Detailed guides are available in the `docs/` directory:
 
@@ -203,12 +209,12 @@ Detailed guides are available in the `docs/` directory:
 
 ---
 
-## Author
+## 👤 Author
 
 **Huang Akai (Kai)** -- Founder @ Universal FAW Labs | Creative Technologist | Ex-Ogilvy | 15+ years experience
 
 ---
 
-## License
+## 📄 License
 
 MIT
