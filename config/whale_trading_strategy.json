@@ -1,0 +1,170 @@
+{
+  "meta": {
+    "version": "4.0.0",
+    "description": "鯨魚交易策略配置 - v4.0 提高止盈門檻修復盈虧比",
+    "last_updated": "2025-01-14",
+    "author": "AI Trading System",
+    "notes": "v4.0 關鍵修復：舊版止盈門檻太低(+$3)，止損-$14，盈虧比0.23。提高止盈門檻至 6%+ 淨利"
+  },
+  
+  "position_management": {
+    "leverage": 100,
+    "position_size_usdt": 100.0,
+    "max_concurrent_positions": 1,
+    "description": "100X 槓桿"
+  },
+  
+  "profit_strategy": {
+    "mode": "stepped_lock",
+    "description": "v3.0 更積極的階梯鎖盈 - 更低門檻",
+    
+    "fixed": {
+      "enabled": false,
+      "target_profit_pct": 0.20,
+      "description": "固定止盈 - 價格移動 0.20%"
+    },
+    
+    "stepped_lock": {
+      "enabled": true,
+      "description": "v3.0 階梯鎖盈 - 更低門檻避免獲利回吐",
+      "use_net_pnl": true,
+      
+      "stages": [
+        {
+          "name": "Stage 0: 早期保本",
+          "net_pnl_range": [0.5, 1.5],
+          "action": "move_sl_to_breakeven",
+          "lock_profit_pct": 0,
+          "description": "淨利 0.5% 時就保本！避免獲利回吐"
+        },
+        {
+          "name": "Stage 1: 鎖定 0.3%",
+          "net_pnl_range": [1.5, 3.0],
+          "action": "lock_profit",
+          "lock_profit_pct": 0.3,
+          "description": "淨利 1.5% 時，鎖定 0.3%"
+        },
+        {
+          "name": "Stage 2: 鎖定 1%",
+          "net_pnl_range": [3.0, 5.0],
+          "action": "lock_profit",
+          "lock_profit_pct": 1.0,
+          "trailing_pct": 2.0,
+          "description": "淨利 3-5% 時，鎖定 1%"
+        },
+        {
+          "name": "Stage 3: 鎖定 2.5%",
+          "net_pnl_range": [5.0, 8.0],
+          "action": "lock_profit",
+          "lock_profit_pct": 2.5,
+          "trailing_pct": 1.5,
+          "description": "淨利 5-8% 時，鎖定 2.5%"
+        },
+        {
+          "name": "Stage 4: 鎖定 5%",
+          "net_pnl_range": [8.0, 12.0],
+          "action": "lock_profit",
+          "lock_profit_pct": 5.0,
+          "trailing_pct": 1.5,
+          "description": "淨利 8-12% 時，鎖定 5%"
+        },
+        {
+          "name": "Stage 5: 緊密追蹤",
+          "net_pnl_range": [12.0, 999],
+          "action": "tight_trailing",
+          "lock_profit_pct": 8.0,
+          "trailing_pct": 1.0,
+          "description": "淨利 >12% 時，鎖定 8%"
+        }
+      ]
+    },
+    
+    "smart_exit": {
+      "enabled": true,
+      "description": "v4.0 智能止盈條件 - 提高門檻避免過早止盈",
+      "rules": {
+        "quick_profit": {
+          "enabled": true,
+          "min_net_pnl": 6.0,
+          "max_hold_minutes": 3,
+          "description": "v4.0: 3分鐘內達到 6% 淨利即走 (舊版5%/2分鐘太早)"
+        },
+        "target_reached": {
+          "enabled": true,
+          "target_net_pnl": 10.0,
+          "description": "v4.0: 達到 10% 淨利目標即走 (舊版8%)"
+        },
+        "time_decay": {
+          "enabled": true,
+          "after_minutes": 15,
+          "min_net_pnl": 5.0,
+          "description": "v4.0: 15分鐘後，只要有 5% 淨利就走 (舊版10分鐘/3%太早)"
+        }
+      }
+    }
+  },
+  
+  "stop_loss_strategy": {
+    "description": "v3.0 動態止損 + 積極鎖盈",
+    
+    "initial_stop_loss_pct": 0.10,
+    "max_loss_pct": 0.12,
+    
+    "dynamic_based_on_net_pnl": {
+      "enabled": true,
+      "description": "v3.0 更低門檻的鎖盈 - 關鍵改動！",
+      "rules": [
+        {"net_pnl_above": 0.5, "set_sl_to_net_pnl": 0.0, "description": "淨利>0.5%時，止損設在成本 (保本)"},
+        {"net_pnl_above": 1.5, "set_sl_to_net_pnl": 0.3, "description": "淨利>1.5%時，止損設在+0.3%"},
+        {"net_pnl_above": 3.0, "set_sl_to_net_pnl": 1.0, "description": "淨利>3%時，止損設在+1%"},
+        {"net_pnl_above": 5.0, "set_sl_to_net_pnl": 2.5, "description": "淨利>5%時，止損設在+2.5%"},
+        {"net_pnl_above": 8.0, "set_sl_to_net_pnl": 5.0, "description": "淨利>8%時，止損設在+5%"},
+        {"net_pnl_above": 12.0, "set_sl_to_net_pnl": 8.0, "description": "淨利>12%時，止損設在+8%"}
+      ]
+    },
+    
+    "time_based_tightening": {
+      "enabled": true,
+      "rules": [
+        {"after_minutes": 3, "tighten_to_pct": 0.08},
+        {"after_minutes": 5, "tighten_to_pct": 0.06},
+        {"after_minutes": 10, "tighten_to_pct": 0.05}
+      ]
+    }
+  },
+  
+  "entry_requirements": {
+    "min_probability": 0.65,
+    "min_confidence": 0.55,
+    "min_obi_strength": 0.30,
+    "required_confirmations": 2,
+    "cooldown_after_loss_minutes": 5,
+    "cooldown_after_win_minutes": 2,
+    "description": "進場條件"
+  },
+  
+  "risk_management": {
+    "max_daily_trades": 15,
+    "max_daily_loss_usdt": 300.0,
+    "max_consecutive_losses": 3,
+    "pause_after_consecutive_losses_minutes": 30,
+    "max_hold_minutes": 18,
+    "description": "風險管理"
+  },
+  
+  "trend_reversal_handling": {
+    "enabled": true,
+    "reversal_threshold_pct": 2.0,
+    "min_profit_to_protect": 1.5,
+    "action": "protect_profit",
+    "description": "v3.0 更早保護 - 曾獲利1.5%以上且回撤超過2%時，確保保本"
+  },
+  
+  "fee_calculation": {
+    "maker_fee_pct": 0.02,
+    "taker_fee_pct": 0.04,
+    "use_maker": true,
+    "round_trip_with_maker": 0.04,
+    "description": "手續費計算"
+  }
+}

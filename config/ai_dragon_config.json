@@ -1,0 +1,38 @@
+{
+  "model_config": {
+    "provider": "ollama",
+    "model_name": "kimi-k2:1t-cloud"
+  },
+  "team_dynamics": {
+    "current_mvp": "Macro",
+    "debate_intensity": "HIGH",
+    "consensus_threshold": 0.7
+  },
+  "agent_profiles": {
+    "macro": {
+      "name": "The Dragon Seer",
+      "role": "Guardian of the Trend",
+      "focus": "4H+ Structure, Whale Accumulation, Safety",
+      "bias": "Conservative",
+      "weight": 1.2
+    },
+    "micro": {
+      "name": "The Dragon Claw",
+      "role": "Sniper",
+      "focus": "15m Order Flow, VPIN Spikes, OBI Flips",
+      "bias": "Aggressive",
+      "weight": 0.8
+    },
+    "strategist": {
+      "name": "The Dragon Heart",
+      "role": "Risk Manager",
+      "focus": "Capital Preservation, Discipline",
+      "bias": "Neutral",
+      "weight": 1.0
+    }
+  },
+  "dynamic_parameters": {
+    "max_leverage": 50,
+    "risk_level": "MODERATE"
+  }
+}

@@ -1,0 +1,428 @@
+{
+  "strategies": {
+    "mode_0_baseline": {
+      "name": "無風控基準",
+      "emoji": "🤖❌",
+      "description": "強制交易所有信號，用於對比",
+      "leverage": 5,
+      "position_size": 0.3,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": false,
+        "liquidity_check": false,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_0_reverse": {
+      "name": "反向交易",
+      "emoji": "❌🤖",
+      "description": "逆向操作：做多變做空，持有變平倉",
+      "leverage": 5,
+      "position_size": 0.3,
+      "enabled": false,
+      "reverse_trading": true,
+      "risk_control": {
+        "vpin_check": false,
+        "liquidity_check": false,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_1_vpin_only": {
+      "name": "VPIN風控",
+      "emoji": "🤖🟡",
+      "description": "只檢查市場毒性指標",
+      "leverage": 3,
+      "position_size": 0.3,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.85,
+        "liquidity_check": false,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_2_liquidity_only": {
+      "name": "流動性風控",
+      "emoji": "🤖🔵",
+      "description": "只檢查價差和深度",
+      "leverage": 3,
+      "position_size": 0.3,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": false,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_3_full_control": {
+      "name": "完整風控",
+      "emoji": "🤖🟢",
+      "description": "VPIN + 流動性雙重檢查",
+      "leverage": 5,
+      "position_size": 0.3,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.85,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_4_trend_following": {
+      "name": "趨勢跟隨",
+      "emoji": "🤖🟣",
+      "description": "跟隨強勢趨勢，確認後進場",
+      "leverage": 4,
+      "position_size": 0.4,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.85,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "trend_check": true,
+        "obi_velocity_threshold": 0.5,
+        "signed_volume_threshold": 3.0,
+        "stop_loss": 0.04,
+        "take_profit": 0.10
+      }
+    },
+    "mode_5_mean_reversion": {
+      "name": "均值回歸",
+      "emoji": "🤖🟠",
+      "description": "反向交易極端失衡",
+      "leverage": 2,
+      "position_size": 0.5,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.85,
+        "liquidity_check": true,
+        "spread_threshold": 8,
+        "depth_threshold": 5,
+        "reverse_trade": true,
+        "obi_extreme_threshold": 0.8,
+        "stop_loss": 0.06,
+        "take_profit": 0.06
+      }
+    },
+    "mode_6_dynamic_stop": {
+      "name": "動態止損",
+      "emoji": "🤖⚪",
+      "description": "根據波動率調整止損",
+      "leverage": 3,
+      "position_size": 0.35,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.85,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "dynamic_stop": true,
+        "volatility_multiplier": 2.0,
+        "min_stop_loss": 0.03,
+        "max_stop_loss": 0.10,
+        "take_profit": 0.08
+      }
+    },
+    "mode_7_hybrid": {
+      "name": "混合策略",
+      "emoji": "🤖🔴",
+      "description": "根據市場狀態動態切換策略",
+      "leverage": 4,
+      "position_size": 0.35,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.855,
+        "liquidity_check": true,
+        "spread_threshold": 12,
+        "depth_threshold": 4,
+        "trend_check": true,
+        "hybrid_mode": true,
+        "confidence_threshold": 0.6,
+        "stop_loss": 0.045,
+        "take_profit": 0.09
+      }
+    },
+    "mode_8_technical_loose": {
+      "name": "技術指標寬鬆",
+      "emoji": "🤖📊",
+      "description": "技術指標輔助（門檻 1 票，容易通過）",
+      "leverage": 3,
+      "position_size": 0.4,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.855,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "technical_indicators": true,
+        "min_indicator_agreement": 1,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "stochrsi_oversold": 25,
+        "stochrsi_overbought": 75,
+        "stop_loss": 0.04,
+        "take_profit": 0.10
+      }
+    },
+    "mode_9_technical_strict": {
+      "name": "技術指標嚴格",
+      "emoji": "🤖📈",
+      "description": "技術指標嚴格（門檻 3 票，需多數同意）",
+      "leverage": 2,
+      "position_size": 0.5,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.85,
+        "liquidity_check": true,
+        "spread_threshold": 8,
+        "depth_threshold": 4,
+        "technical_indicators": true,
+        "min_indicator_agreement": 3,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "stochrsi_oversold": 20,
+        "stochrsi_overbought": 80,
+        "stop_loss": 0.05,
+        "take_profit": 0.12
+      }
+    },
+    "mode_10_technical_off": {
+      "name": "技術指標關閉",
+      "emoji": "🤖📉",
+      "description": "關閉技術指標（純 VPIN + 流動性風控）",
+      "leverage": 4,
+      "position_size": 0.35,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.855,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "technical_indicators": false,
+        "stop_loss": 0.045,
+        "take_profit": 0.09
+      }
+    },
+    "mode_13_adaptive": {
+      "name": "自適應多時間框架",
+      "emoji": "🤖🌈",
+      "description": "多時間框架趨勢確認，profit-running 出場策略，目標 1-2% 未開槓桿收益",
+      "leverage": 3,
+      "position_size": 0.5,
+      "enabled": true,
+      "multi_timeframe": true,
+      "timeframes": {
+        "obi_5min": 300,
+        "obi_15min": 900,
+        "obi_30min": 1800,
+        "obi_1hour": 3600,
+        "obi_4hour": 14400,
+        "obi_8hour": 28800
+      },
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.85,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "min_confidence": 0.5,
+        "min_obi_threshold": 0.5,
+        "obi_30min_threshold": 0.3,
+        "obi_1hour_threshold": 0.25,
+        "obi_4hour_threshold": 0.2,
+        "obi_5min_threshold": 0.4,
+        "signed_volume_5min_threshold": 5.0,
+        "stop_loss": 0.008,
+        "take_profit": 0.025,
+        "trailing_stop_trigger": 0.015,
+        "trailing_stop_distance": 0.005,
+        "max_hold_time_seconds": 28800,
+        "min_hold_time_seconds": 60
+      }
+    },
+    "mode_14_dynamic_leverage": {
+      "name": "M14 - 動態槓桿優化 🤖🐳",
+      "emoji": "🤖🐳",
+      "description": "動態槓桿調整 + 三方案自適應切換 (A保守/B平衡/C積極)",
+      "enabled": true,
+      "leverage": 20,
+      "position_size": 0.5,
+      "base_leverage": 20,
+      "max_position_size": 0.5,
+      "multi_timeframe": true,
+      "dynamic_leverage": true,
+      "dynamic_position_size": true,
+      "dynamic_tpsl": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.75,
+        "liquidity_check": true,
+        "spread_threshold": 8,
+        "depth_threshold": 5,
+        "trend_check": true,
+        "dynamic_stop_loss": true,
+        "min_stop_loss": 0.004,
+        "max_stop_loss": 0.015,
+        "dynamic_take_profit": true,
+        "min_take_profit": 0.008,
+        "max_take_profit": 0.025,
+        "signal_quality_threshold": 0.7,
+        "volume_confirmation_threshold": 1.2,
+        "min_obi_threshold": 0.6,
+        "cost_awareness": true,
+        "expected_move_threshold": 0.002,
+        "safety_margin": 1.5
+      },
+      "schemes": {
+        "A": {
+          "name": "方案A - 保守穩健",
+          "trades_per_hour_range": [2, 3],
+          "leverage_range": [10, 15],
+          "position_range": [0.30, 0.40],
+          "price_tp": 0.0012,
+          "price_sl": 0.0008,
+          "profit_loss_ratio": 1.5,
+          "hourly_target": 0.015,
+          "win_rate_target": 0.75,
+          "max_drawdown": 0.08,
+          "time_to_double_hours": 48
+        },
+        "B": {
+          "name": "方案B - 平衡成長",
+          "trades_per_hour_range": [3, 4],
+          "leverage_range": [15, 20],
+          "position_range": [0.40, 0.45],
+          "price_tp": 0.0015,
+          "price_sl": 0.0009,
+          "profit_loss_ratio": 1.7,
+          "hourly_target": 0.020,
+          "win_rate_target": 0.72,
+          "max_drawdown": 0.12,
+          "time_to_double_hours": 36
+        },
+        "C": {
+          "name": "方案C - 積極加速",
+          "trades_per_hour_range": [4, 5],
+          "leverage_range": [18, 25],
+          "position_range": [0.45, 0.50],
+          "price_tp": 0.0020,
+          "price_sl": 0.0010,
+          "profit_loss_ratio": 2.0,
+          "hourly_target": 0.030,
+          "win_rate_target": 0.70,
+          "max_drawdown": 0.15,
+          "time_to_double_hours": 24
+        }
+      },
+      "scheme_switching": {
+        "upgrade_conditions": {
+          "consecutive_wins": 5,
+          "win_rate_threshold": 0.80,
+          "min_trades": 10
+        },
+        "downgrade_conditions": {
+          "consecutive_losses": 3,
+          "loss_threshold": 0.10
+        },
+        "stop_conditions": {
+          "total_loss_threshold": 0.30,
+          "vpin_threshold": 0.85,
+          "vpin_duration_minutes": 60,
+          "network_latency_ms": 200
+        }
+      },
+      "adjustment_triggers": {
+        "vpin_spike": {
+          "condition": 0.75,
+          "action": "reduce_leverage_to_50_percent",
+          "priority": "HIGH"
+        },
+        "volatility_surge": {
+          "condition": 1.5,
+          "action": "widen_tpsl_reduce_position",
+          "priority": "HIGH"
+        },
+        "liquidity_drop": {
+          "spread_threshold": 10,
+          "depth_threshold": 3,
+          "action": "pause_or_minimal_position",
+          "priority": "MEDIUM"
+        },
+        "trend_confirmation": {
+          "strength_threshold": 0.8,
+          "action": "increase_leverage_position",
+          "priority": "MEDIUM"
+        },
+        "signal_deterioration": {
+          "quality_threshold": 0.4,
+          "action": "skip_or_minimal_position",
+          "priority": "LOW"
+        }
+      },
+      "market_regime_settings": {
+        "trending": {
+          "position_multiplier": 1.1,
+          "description": "趨勢市場增加倉位"
+        },
+        "volatile": {
+          "position_multiplier": 0.7,
+          "leverage_multiplier": 0.6,
+          "description": "波動市場降低槓桿和倉位"
+        },
+        "consolidation": {
+          "position_multiplier": 0.5,
+          "description": "盤整市場大幅降低倉位"
+        },
+        "neutral": {
+          "position_multiplier": 1.0,
+          "description": "中性市場正常參數"
+        }
+      },
+      "entry_conditions": {
+        "required_conditions": 7,
+        "total_conditions": 8,
+        "conditions": [
+          "vpin_safe",
+          "spread_ok",
+          "depth_ok",
+          "strong_signal",
+          "signal_quality",
+          "volume_confirmation",
+          "trend_aligned",
+          "profitable_after_costs"
+        ]
+      }
+    }
+  },
+  "global_settings": {
+    "fees": {
+      "taker_fee": 0.0005,
+      "maker_fee": 0.0002,
+      "funding_rate_hourly": 0.00003
+    },
+    "slippage_bps": 2,
+    "initial_capital": 100
+  }
+}

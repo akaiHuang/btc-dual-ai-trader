@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "card_id": "whale_activity",
+    "card_type": "regime",
+    "name": "🐋 鯨魚活躍",
+    "description": "檢測到大量大單活動，主力在操作"
+  },
+  
+  "detection_rules": {
+    "conditions": [
+      "whale_trade_count >= 5 (60秒內)",
+      "whale_total_value >= $200K",
+      "whale_direction_consistent (80%+ 同方向)",
+      "obi_extreme (> 0.20 或 < -0.20)"
+    ],
+    "required_matches": 2
+  },
+  
+  "parameters": {
+    "whale_threshold_usdt": 50000,
+    "whale_count_threshold": 5,
+    "whale_window_sec": 60,
+    "whale_total_value_threshold": 200000,
+    "whale_direction_consistency": 0.80,
+    "obi_extreme_threshold": 0.20
+  },
+  
+  "recommended_cards": {
+    "entry": "whale_follow",
+    "exit": "lock_profit",
+    "risk": "high_leverage"
+  },
+  
+  "strategy": "🎯 跟隨鯨魚方向，快進快出，搭N%鎖N%保護獲利"
+}

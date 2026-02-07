@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "card_id": "hold_winner",
+    "card_type": "exit",
+    "name": "🏆 持有贏家",
+    "description": "獲利後繼續持有，讓利潤奔跑，適合大趨勢",
+    "best_for": ["強趨勢", "大波動"],
+    "historical_win_rate": "45%",
+    "avg_profit_pct": "+8.5%"
+  },
+  
+  "parameters": {
+    "lock_profit_enabled": true,
+    "lock_start_pct": 3.0,
+    "lock_step_pct": 2.0,
+    "lock_trail_pct": 2.0,
+    
+    "trailing_stop_enabled": true,
+    "trailing_start_pct": 5.0,
+    "trailing_offset_pct": 3.0,
+    
+    "stop_loss_pct": 4.0,
+    "take_profit_pct": 15.0,
+    "max_hold_min": 240.0,
+    
+    "two_phase_exit_enabled": true,
+    "phase1_strict_stop_loss_pct": 2.5,
+    "phase1_target_pct": 3.0,
+    "phase2_trailing_start_pct": 6.0,
+    "phase2_trailing_offset_pct": 3.0,
+    "phase2_max_target_pct": 15.0,
+    
+    "no_momentum_enabled": true,
+    "no_momentum_check_after_min": 5.0,
+    "no_momentum_min_profit": 2.0,
+    "no_momentum_loss_trigger": -3.0
+  },
+  
+  "exit_rules": {
+    "lock_profit_trigger": "獲利 ≥ 3% 時開始鎖利",
+    "trailing_trigger": "獲利 ≥ 5% 時追蹤止盈",
+    "stop_loss": "虧損達 4% 時強制止損",
+    "take_profit": "獲利達 15% 時止盈",
+    "no_momentum_exit": "5分鐘後無動能且虧損>3% 時出場"
+  }
+}

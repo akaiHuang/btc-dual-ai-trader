@@ -1,0 +1,18 @@
+{
+  "current_phase": "PREEMPTIVE_ENTRY",
+  "next_action": "Ride the bullish trend until price hits reversal at 88500 or Reality Checker signals CUT_LOSS",
+  "created_at": "2025-11-28T05:43:58.173192",
+  "plan_id": "5c07847c-6000-4908-a089-414b897f55cf",
+  "market_bias": "BULLISH",
+  "phase": "LONG",
+  "max_leverage": 125,
+  "risk_level": "AGGRESSIVE",
+  "grand_strategy": {
+    "active": true,
+    "direction": "BULLISH",
+    "thesis": "WHALE DOMINANCE 85.4% LONG with 11.7 BTC net position - must align aggressively. Volatile regime favors strong directional moves following whale accumulation.",
+    "target_duration_hours": 3,
+    "start_time": "2025-11-28T05:43:48.533585",
+    "invalidation_price": 90000
+  }
+}

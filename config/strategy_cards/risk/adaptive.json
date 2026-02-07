@@ -1,0 +1,38 @@
+{
+  "_meta": {
+    "card_id": "adaptive",
+    "card_type": "risk",
+    "name": "🎛️ 自適應風控",
+    "description": "根據市場波動和近期表現動態調整風險參數",
+    "best_for": ["所有市場"],
+    "risk_level": "中等"
+  },
+  
+  "parameters": {
+    "leverage_min": 20,
+    "leverage_max": 50,
+    "leverage_default": 35,
+    
+    "position_size_usdt": 100,
+    "max_daily_trades": 50,
+    "max_concurrent_positions": 1,
+    
+    "max_daily_loss_pct": 15.0,
+    "max_consecutive_losses": 3,
+    "consecutive_loss_cooldown_min": 20,
+    
+    "consecutive_wins_to_restore": 2,
+    
+    "volatility_leverage_adjust": true,
+    "volatility_high_threshold": 0.3,
+    "volatility_low_threshold": 0.1,
+    "leverage_reduce_on_high_vol": 0.6,
+    "leverage_increase_on_low_vol": 1.2
+  },
+  
+  "adaptive_rules": {
+    "leverage_calc": "根據波動率調整: 高波動減倉，低波動加倉",
+    "cooldown": "連續虧損 3 次冷卻 20 分鐘",
+    "restore": "連續獲利 2 次恢復正常參數"
+  }
+}

@@ -1,0 +1,75 @@
+{
+    "_meta": {
+        "card_id": "scalp_aggressive",
+        "card_name": "🔥 極速剝頭皮卡",
+        "description": "超高頻交易，抓取微小價差，秒級進出",
+        "version": "1.0",
+        "created_at": "2025-01-10",
+        "market_condition": "任何",
+        "risk_level": "medium",
+        "expected_win_rate": 0.58,
+        "tags": ["scalp", "high-frequency", "micro-profit"]
+    },
+
+    "_extends": "base_default",
+
+    "basic": {
+        "leverage": 50,
+        "position_size_usdt": 200.0
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 0.15,
+        "target_profit_min_pct": 0.10,
+        "target_profit_max_pct": 0.25,
+        "stop_loss_pct": 0.08,
+        "stop_loss_min_pct": 0.05,
+        "stop_loss_max_pct": 0.12,
+        "early_stop_grace_sec": 1.0,
+        "max_hold_minutes": 5.0,
+        "max_hold_min_minutes": 1.0,
+        "max_hold_max_minutes": 10.0
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "n_lock_n_threshold": 0.2,
+        "n_lock_n_buffer": 0.0
+    },
+
+    "timing": {
+        "analysis_interval_sec": 1.0,
+        "min_trade_interval_sec": 0.3
+    },
+
+    "signal_quality": {
+        "min_probability": 0.55,
+        "min_confidence": 0.45,
+        "signal_confirm_seconds": 1,
+        "min_signal_advantage": 0.08
+    },
+
+    "analysis_windows": {
+        "fast_window_seconds": 3,
+        "medium_window_seconds": 15,
+        "slow_window_seconds": 60
+    },
+
+    "six_dim_system": {
+        "six_dim_alignment_threshold": 4,
+        "six_dim_min_score_to_trade": 5,
+        "warmup_seconds": 5.0
+    },
+
+    "risk_control": {
+        "max_daily_trades": 50,
+        "max_daily_loss_usdt": 150.0,
+        "max_consecutive_losses": 3,
+        "consecutive_loss_cooldown_min": 5
+    },
+
+    "two_phase_exit": {
+        "phase1_target_pct": 0.3,
+        "phase2_trailing_start_pct": 0.5
+    }
+}

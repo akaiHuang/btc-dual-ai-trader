@@ -1,0 +1,165 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "description": "鯨魚交易策略配置 - 動態可調整",
+    "last_updated": "2025-11-28",
+    "author": "AI Trading System",
+    "notes": "此配置可由 AI 模型動態優化"
+  },
+  
+  "position_management": {
+    "leverage": 100,
+    "position_size_usdt": 100.0,
+    "max_concurrent_positions": 1,
+    "description": "持倉管理設定"
+  },
+  
+  "profit_strategy": {
+    "mode": "dynamic_trailing",
+    "description": "獲利策略模式: fixed/trailing/dynamic_trailing/ai_optimized",
+    
+    "fixed": {
+      "enabled": false,
+      "target_profit_pct": 0.08,
+      "description": "固定止盈 - 達到目標直接平倉"
+    },
+    
+    "trailing": {
+      "enabled": false,
+      "activation_profit_pct": 0.05,
+      "trailing_distance_pct": 0.03,
+      "description": "追蹤止盈 - 達到激活點後開始追蹤"
+    },
+    
+    "dynamic_trailing": {
+      "enabled": true,
+      "description": "動態追蹤止盈 - 根據獲利階段調整策略",
+      
+      "stages": [
+        {
+          "name": "保本階段",
+          "profit_range": [0.03, 0.05],
+          "action": "move_sl_to_breakeven",
+          "trailing_pct": null,
+          "description": "獲利達 3-5% 時，止損移至開倉價 (保本)"
+        },
+        {
+          "name": "入袋為安",
+          "profit_range": [0.05, 0.08],
+          "action": "partial_close",
+          "close_percent": 50,
+          "trailing_pct": 0.02,
+          "description": "獲利達 5-8% 時，平倉 50%，剩餘設追蹤止損"
+        },
+        {
+          "name": "追蹤獲利",
+          "profit_range": [0.08, 0.15],
+          "action": "tight_trailing",
+          "trailing_pct": 0.015,
+          "description": "獲利達 8-15% 時，收緊追蹤距離"
+        },
+        {
+          "name": "鎖定利潤",
+          "profit_range": [0.15, 999],
+          "action": "very_tight_trailing",
+          "trailing_pct": 0.01,
+          "description": "獲利超過 15% 時，極緊追蹤"
+        }
+      ]
+    }
+  },
+  
+  "stop_loss_strategy": {
+    "initial_stop_loss_pct": 0.10,
+    "max_loss_pct": 0.15,
+    "time_based_tightening": {
+      "enabled": true,
+      "rules": [
+        {"after_minutes": 5, "tighten_to_pct": 0.08},
+        {"after_minutes": 10, "tighten_to_pct": 0.06},
+        {"after_minutes": 20, "tighten_to_pct": 0.04}
+      ]
+    },
+    "description": "止損策略 - 隨時間收緊"
+  },
+  
+  "entry_requirements": {
+    "min_probability": 0.70,
+    "min_confidence": 0.60,
+    "min_obi_strength": 0.3,
+    "required_confirmations": 2,
+    "cooldown_after_loss_minutes": 5,
+    "cooldown_after_win_minutes": 2,
+    "description": "進場條件要求"
+  },
+  
+  "order_execution": {
+    "order_type": "MARKET",
+    "max_slippage_pct": 0.05,
+    "order_timeout_sec": 10,
+    "retry_count": 3,
+    "retry_delay_sec": 1,
+    "verify_fill": true,
+    "description": "訂單執行設定"
+  },
+  
+  "trend_reversal_handling": {
+    "enabled": true,
+    "reversal_threshold_pct": 2.0,
+    "min_profit_to_protect": 3.0,
+    "action": "protect_profit",
+    "description": "趨勢反轉保護 - 當曾獲利3%以上且回撤超過2%或60%最大獲利時觸發，但只在剩餘獲利<1%時才平倉"
+  },
+  
+  "fee_calculation": {
+    "maker_fee_pct": 0.02,
+    "taker_fee_pct": 0.04,
+    "estimated_slippage_pct": 0.01,
+    "total_round_trip_pct": 0.10,
+    "description": "手續費計算 (進場+出場 ≈ 0.10%，100X 後 ≈ 10%)"
+  },
+  
+  "target_calculation": {
+    "description": "目標計算說明",
+    "target_net_profit_pct_min": 5.0,
+    "target_net_profit_pct_max": 10.0,
+    "required_price_move_for_5pct": "0.15% (100X槓桿，扣10%手續費後 = 5%)",
+    "required_price_move_for_10pct": "0.20% (100X槓桿，扣10%手續費後 = 10%)",
+    "formula": "淨利% = (價格移動% × 槓桿) - 手續費%"
+  },
+  
+  "risk_management": {
+    "max_daily_trades": 20,
+    "max_daily_loss_usdt": 500.0,
+    "max_consecutive_losses": 3,
+    "pause_after_consecutive_losses_minutes": 30,
+    "max_hold_minutes": 30,
+    "description": "風險管理"
+  },
+  
+  "market_conditions": {
+    "avoid_trading_during": {
+      "high_volatility_threshold": 2.0,
+      "low_liquidity_threshold": 0.5,
+      "funding_rate_extreme": 0.1
+    },
+    "preferred_conditions": {
+      "obi_range": [-0.8, 0.8],
+      "volatility_range": [0.2, 1.5]
+    },
+    "description": "市場條件篩選"
+  },
+  
+  "ai_optimization": {
+    "enabled": true,
+    "optimize_fields": [
+      "profit_strategy.dynamic_trailing.stages",
+      "entry_requirements.min_probability",
+      "entry_requirements.min_confidence",
+      "stop_loss_strategy.initial_stop_loss_pct"
+    ],
+    "learning_rate": 0.01,
+    "update_frequency_trades": 50,
+    "description": "AI 可優化的欄位"
+  }
+}

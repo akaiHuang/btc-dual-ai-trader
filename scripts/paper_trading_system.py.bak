@@ -1,0 +1,2112 @@
+#!/usr/bin/env python3
+"""
+紙面交易系統 (Paper Trading System)
+==================================
+
+功能：
+1. 使用真實市場數據（Binance WebSocket）
+2. 模擬訂單執行（含滑點、手續費、資金費率）
+3. 多種風控模式對比測試
+4. 完整訂單簿記錄（JSON 格式）
+5. 事後績效分析
+
+風控模式：
+- Mode 0-10: 動態載入自 config/trading_strategies.json
+- 支援獨立啟用/禁用每個策略
+- 每個策略有獨立的參數配置
+
+重要性：⭐⭐⭐⭐⭐
+用途：驗證多種策略的實際表現
+"""
+
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+import asyncio
+import json
+import time
+from datetime import datetime
+from collections import deque
+from typing import Dict, List, Optional, Tuple
+from urllib.request import urlopen
+from urllib.parse import urlencode
+import websockets
+import numpy as np
+
+from src.exchange.obi_calculator import OBICalculator
+from src.exchange.signed_volume_tracker import SignedVolumeTracker
+from src.exchange.vpin_calculator import VPINCalculator
+from src.exchange.spread_depth_monitor import SpreadDepthMonitor
+from src.strategy.layered_trading_engine import LayeredTradingEngine
+from src.strategy.strategy_manager import StrategyManager
+from src.utils.config_monitor import ConfigMonitor
+
+
+class SimulatedOrder:
+    """模擬訂單（完整記錄）"""
+    
+    # 交易參數（真實 Binance 費率）
+    MAKER_FEE = 0.0002  # 0.02%
+    TAKER_FEE = 0.0005  # 0.05%
+    FUNDING_RATE_HOURLY = 0.00003  # ~0.003%/hr
+    SLIPPAGE_BPS = 2  # 2 bps 滑點
+    
+    def __init__(self, order_id: int, timestamp: float, price: float,
+                 signal: dict, market_data: dict, mode: str,
+                 capital: float = 100.0, leverage: int = 5):
+        # 基本信息
+        self.order_id = order_id
+        self.timestamp = timestamp
+        self.entry_time = datetime.fromtimestamp(timestamp / 1000)
+        self.mode = mode  # 風控模式
+        
+        # 市場數據快照
+        self.entry_price = price
+        self.market_data = market_data.copy()
+        self.signal = signal.copy()
+        self.entry_obi = market_data.get('obi', 0)  # 記錄進場 OBI
+        
+        # 決策信息
+        self.direction = signal['direction']  # LONG/SHORT/NEUTRAL
+        self.confidence = signal['confidence']
+        self.risk_level = market_data.get('risk_level', 'UNKNOWN')
+        self.can_trade = True  # 會在外部設置
+        self.blocked_reasons = []
+        
+        # 倉位信息
+        self.capital = capital
+        self.leverage = leverage  # 使用外部傳入的槓桿
+        self.size = self._determine_size()
+        self.position_value = capital * self.size * self.leverage
+        
+        # 止損止盈（根據風險等級調整）
+        self.stop_loss_pct, self.take_profit_pct = self._determine_risk_params()
+        
+        # 計算實際價格（含滑點）
+        slippage = self.SLIPPAGE_BPS / 10000
+        if self.direction == "LONG":
+            self.actual_entry_price = price * (1 + slippage)
+        else:  # SHORT
+            self.actual_entry_price = price * (1 - slippage)
+        
+        # 手續費
+        self.entry_fee = self.position_value * self.TAKER_FEE
+        
+        # 平倉信息（稍後填寫）
+        self.exit_price: Optional[float] = None
+        self.exit_time: Optional[datetime] = None
+        self.exit_reason: Optional[str] = None
+        self.holding_seconds: Optional[float] = None
+        self.exit_fee: Optional[float] = None
+        self.funding_fee: Optional[float] = None
+        self.pnl_usdt: Optional[float] = None
+        self.pnl_pct: Optional[float] = None
+        self.roi: Optional[float] = None
+        
+        # 狀態
+        self.status = "OPEN"  # OPEN/CLOSED/BLOCKED
+        
+        # Mode 13 追蹤止損狀態
+        self.peak_pnl_pct = 0.0  # 記錄最高盈利百分比
+        self.trailing_stop_active = False  # 追蹤止損是否啟動
+    
+    def _determine_size(self) -> float:
+        """根據信心度決定倉位大小"""
+        confidence = self.confidence
+        
+        if confidence > 0.8:
+            return 0.8  # 激進 80%
+        elif confidence > 0.6:
+            return 0.5  # 中等 50%
+        else:
+            return 0.3  # 保守 30%
+    
+    def _determine_risk_params(self) -> Tuple[float, float]:
+        """根據風險等級決定止損止盈"""
+        risk = self.market_data.get('risk_level', 'UNKNOWN')
+        leverage = self.leverage
+        
+        if risk in ['SAFE', 'UNKNOWN']:
+            return (5.0, 8.0)  # 5% 止損, 8% 止盈
+        elif risk == 'WARNING':
+            return (8.0, 12.0)  # 8% 止損, 12% 止盈
+        else:  # DANGER/CRITICAL
+            return (10.0, 15.0)  # 10% 止損, 15% 止盈
+    
+    def check_exit(self, current_price: float, current_signal: dict, current_obi: float = 0, market_data: dict = None) -> Optional[str]:
+        """檢查是否應該平倉"""
+        if self.status != "OPEN":
+            return None
+        
+        # 計算未實現盈虧
+        if self.direction == "LONG":
+            price_change_pct = ((current_price - self.actual_entry_price) / 
+                               self.actual_entry_price) * 100
+            pnl_pct = price_change_pct * self.leverage
+        else:  # SHORT
+            price_change_pct = ((self.actual_entry_price - current_price) / 
+                               self.actual_entry_price) * 100
+            pnl_pct = price_change_pct * self.leverage
+        
+        # Mode 13 特殊邏輯：Profit-Running 策略
+        if self.mode == 'mode_13_adaptive':
+            # 更新峰值盈利
+            if pnl_pct > self.peak_pnl_pct:
+                self.peak_pnl_pct = pnl_pct
+            
+            # 從策略配置獲取參數
+            trailing_trigger = 0.01  # 1% 觸發追蹤止損
+            trailing_distance = 0.003  # 0.3% 回撤距離
+            max_hold_time = 7200  # 2小時
+            min_hold_time = 60  # 60秒
+            
+            # 計算持倉時間
+            current_hold_time = (time.time() * 1000 - self.timestamp) / 1000
+            
+            # 1. 最小持倉時間檢查（避免過早平倉）
+            if current_hold_time < min_hold_time:
+                return None
+            
+            # 2. 達到止盈目標 (2%)
+            if pnl_pct >= self.take_profit_pct:
+                return "TAKE_PROFIT"
+            
+            # 3. 追蹤止損邏輯
+            if self.peak_pnl_pct >= trailing_trigger:
+                self.trailing_stop_active = True
+            
+            if self.trailing_stop_active:
+                # 如果從峰值回撤超過 trailing_distance，平倉
+                if pnl_pct < self.peak_pnl_pct - trailing_distance:
+                    return "TRAILING_STOP"
+            
+            # 4. 止損 (0.8%)
+            if pnl_pct <= -self.stop_loss_pct:
+                return "STOP_LOSS"
+            
+            # 5. 最大持倉時間（2小時）且盈利不足 0.5%
+            if current_hold_time > max_hold_time and pnl_pct < 0.005:
+                return "TIME_STOP"
+            
+            # 6. 強烈反向信號
+            if current_signal['direction'] != self.direction and \
+               current_signal['direction'] != 'NEUTRAL' and \
+               current_signal['confidence'] > 0.7:
+                return "REVERSE_SIGNAL"
+            
+            return None
+        
+        # 其他模式的優化邏輯
+        # 計算持倉時間（所有模式都需要）
+        current_hold_time = (time.time() * 1000 - self.timestamp) / 1000
+        
+        # 1. 檢查止損（優先級最高）
+        if pnl_pct <= -self.stop_loss_pct:
+            return "STOP_LOSS"
+        
+        # 2. 檢查止盈（優先級第二）
+        if pnl_pct >= self.take_profit_pct:
+            return "TAKE_PROFIT"
+        
+        # 3. 檢查 VPIN 突然飆升（新增：高毒性風險）
+        if market_data:
+            vpin = market_data.get('vpin', 0.3)
+            vpin_spike_threshold = 0.8  # VPIN > 0.8 視為極高風險
+            if vpin > vpin_spike_threshold and pnl_pct > 0:  # 只在有盈利時因 VPIN 平倉
+                return "VPIN_SPIKE"
+        
+        # 4. 檢查最大持倉時間
+        max_hold_time = 7200  # 2小時
+        if current_hold_time > max_hold_time:
+            # 超過最大時間且未達預期盈利
+            if pnl_pct < 0.005:  # 0.5% 最小目標
+                return "TIME_STOP"
+        
+        # 5. 檢查強烈反向信號（提高信心度閾值，避免頻繁反向）
+        # 改進：需要非常強的信號（confidence > 0.8）才反向
+        if current_signal['direction'] != self.direction and \
+           current_signal['direction'] != 'NEUTRAL' and \
+           current_signal['confidence'] > 0.8:
+            return "REVERSE_SIGNAL"
+        
+        # 6. Mode 0 特殊: 保持原有快速反向邏輯（作為基準）
+        if self.mode == 'mode_0_baseline':
+            # LONG 持倉: 如果進場時 OBI > 0 (買盤強),現在 OBI < -0.3 (賣盤強),平倉
+            if self.direction == "LONG" and self.entry_obi > 0 and current_obi < -0.3:
+                return "REVERSE_SIGNAL"
+            # SHORT 持倉: 如果進場時 OBI < 0 (賣盤強),現在 OBI > 0.3 (買盤強),平倉
+            elif self.direction == "SHORT" and self.entry_obi < 0 and current_obi > 0.3:
+                return "REVERSE_SIGNAL"
+        
+        return None
+    
+    def close(self, exit_price: float, reason: str, timestamp: float):
+        """平倉並計算完整盈虧"""
+        self.exit_price = exit_price
+        self.exit_time = datetime.fromtimestamp(timestamp / 1000)
+        self.exit_reason = reason
+        self.holding_seconds = (timestamp - self.timestamp) / 1000
+        self.status = "CLOSED"
+        
+        # 計算持倉時間（小時）
+        holding_hours = self.holding_seconds / 3600
+        
+        # 1. 計算資金費率
+        self.funding_fee = self.position_value * self.FUNDING_RATE_HOURLY * holding_hours
+        
+        # 2. 計算出場滑點
+        slippage = self.SLIPPAGE_BPS / 10000
+        if self.direction == "LONG":
+            actual_exit_price = exit_price * (1 - slippage)
+        else:
+            actual_exit_price = exit_price * (1 + slippage)
+        
+        # 3. 計算出場手續費
+        self.exit_fee = self.position_value * self.TAKER_FEE
+        
+        # 4. 計算價格盈虧（USDT）
+        if self.direction == "LONG":
+            price_pnl = ((actual_exit_price - self.actual_entry_price) / 
+                        self.actual_entry_price) * self.position_value
+        else:  # SHORT
+            price_pnl = ((self.actual_entry_price - actual_exit_price) / 
+                        self.actual_entry_price) * self.position_value
+        
+        # 5. 總盈虧（扣除所有費用）
+        self.total_fees = self.entry_fee + self.exit_fee + self.funding_fee
+        self.pnl_usdt = price_pnl - self.total_fees
+        
+        # 6. 計算 ROI（相對於本金）
+        self.roi = (self.pnl_usdt / self.capital) * 100
+        
+        # 7. 計算盈虧百分比（相對於倉位價值）
+        self.pnl_pct = (self.pnl_usdt / self.position_value) * 100
+    
+    def block(self, reasons: List[str]):
+        """阻擋交易"""
+        self.status = "BLOCKED"
+        self.blocked_reasons = reasons
+        self.can_trade = False
+    
+    def to_dict(self) -> dict:
+        """轉換為字典（用於保存）"""
+        return {
+            # 基本信息
+            'order_id': self.order_id,
+            'mode': self.mode,
+            'timestamp': self.timestamp,
+            'entry_time': self.entry_time.isoformat(),
+            
+            # 市場數據
+            'entry_price': self.entry_price,
+            'actual_entry_price': self.actual_entry_price,
+            'market_data': self.market_data,
+            
+            # 決策信息
+            'direction': self.direction,
+            'confidence': self.confidence,
+            'risk_level': self.risk_level,
+            'signal': self.signal,
+            
+            # 倉位信息
+            'capital': self.capital,
+            'leverage': self.leverage,
+            'size': self.size,
+            'position_value': self.position_value,
+            'stop_loss_pct': self.stop_loss_pct,
+            'take_profit_pct': self.take_profit_pct,
+            
+            # 平倉信息
+            'exit_price': self.exit_price,
+            'exit_time': self.exit_time.isoformat() if self.exit_time else None,
+            'exit_reason': self.exit_reason,
+            'holding_seconds': self.holding_seconds,
+            
+            # 費用
+            'entry_fee': self.entry_fee,
+            'exit_fee': self.exit_fee if hasattr(self, 'exit_fee') else None,
+            'funding_fee': self.funding_fee if hasattr(self, 'funding_fee') else None,
+            'total_fees': self.total_fees if hasattr(self, 'total_fees') else None,
+            
+            # 盈虧
+            'pnl_usdt': self.pnl_usdt,
+            'pnl_pct': self.pnl_pct,
+            'roi': self.roi,
+            
+            # 狀態
+            'status': self.status,
+            'can_trade': self.can_trade,
+            'blocked_reasons': self.blocked_reasons
+        }
+
+
+class PaperTradingSystem:
+    """紙面交易系統"""
+    
+    def __init__(self, initial_capital: float = 100.0, 
+                 decision_interval: int = 15,
+                 strategy_config_path: str = "config/trading_strategies.json"):
+        self.initial_capital = initial_capital
+        self.decision_interval = decision_interval
+        
+        # 載入策略管理器
+        self.strategy_manager = StrategyManager(strategy_config_path)
+        
+        # 獲取所有啟用的策略
+        self.active_modes = self.strategy_manager.get_all_modes()
+        print(f"✅ 載入 {len(self.active_modes)} 個策略:")
+        for mode_key in self.active_modes:
+            info = self.strategy_manager.get_strategy_info(mode_key)
+            print(f"   {info['emoji']} {info['name']} - {info['leverage']}x 槓桿")
+        
+        # 指標模組
+        self.obi_calc = OBICalculator(depth_limit=20)
+        self.signed_volume = SignedVolumeTracker(window_size=100)
+        self.vpin_calc = VPINCalculator(bucket_size=10000, num_buckets=50)
+        self.spread_depth = SpreadDepthMonitor(depth_levels=10)
+        
+        # 交易引擎
+        self.trading_engine = LayeredTradingEngine()
+        
+        # 訂單簿（動態創建，每種模式獨立）
+        self.orders = {mode: [] for mode in self.active_modes}
+        
+        # 當前持倉（動態創建，每種模式獨立）
+        self.positions = {mode: None for mode in self.active_modes}
+        
+        # 資金追蹤（動態創建，每種模式獨立）
+        self.balances = {mode: initial_capital for mode in self.active_modes}
+        
+        # 統計
+        self.total_decisions = 0
+        self.order_counter = 0
+        
+        # OBI 歷史（用於計算 velocity）
+        self.obi_history = deque(maxlen=10)
+        
+        # 多時間框架 OBI 歷史 (for Mode 13)
+        self.obi_5min_history = deque(maxlen=60)    # 300秒 / 5秒 = 60個數據點
+        self.obi_15min_history = deque(maxlen=180)  # 900秒 / 5秒 = 180個數據點
+        self.obi_30min_history = deque(maxlen=360)  # 1800秒 / 5秒 = 360個數據點
+        self.obi_1hour_history = deque(maxlen=720)  # 3600秒 / 5秒 = 720個數據點
+        self.obi_4hour_history = deque(maxlen=2880) # 14400秒 / 5秒 = 2880個數據點
+        self.obi_8hour_history = deque(maxlen=5760) # 28800秒 / 5秒 = 5760個數據點
+        
+        # 市場狀態
+        self.latest_price = None
+        self.orderbook_timestamp = None
+        
+        # WebSocket
+        self.ws = None
+        
+        # 初始化標記
+        self.is_initialized = False
+        
+        # 配置熱重載監控器
+        self.config_monitor = ConfigMonitor(
+            strategy_config_path, 
+            check_interval=3,
+            on_reload=self._on_config_reload
+        )
+        self.last_config_check = time.time()
+        
+        # 即時保存檔案名稱（在開始時確定，避免每次都生成新檔名）
+        self.save_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        self.json_filename = f"data/paper_trading/paper_trading_{self.save_timestamp}.json"
+        self.log_filename = f"data/paper_trading/paper_trading_{self.save_timestamp}.log"
+        self.terminal_log_filename = f"data/paper_trading/paper_trading_{self.save_timestamp}_terminal.txt"
+        self.visual_report_filename = f"data/paper_trading/paper_trading_{self.save_timestamp}_visual_report.txt"
+        
+        # 確保 data/paper_trading 目錄存在
+        Path("data/paper_trading").mkdir(parents=True, exist_ok=True)
+        
+        # 視覺化報告追蹤數據
+        self.test_start_time = datetime.now()
+        self.vpin_history = deque(maxlen=100)  # 記錄最近 100 個 VPIN 值
+        self.last_report_update = 0  # 最後更新報告的時間戳
+        
+        # 初始化檔案
+        self._init_save_file()
+        
+        # 打開終端日誌檔案（追加模式，即時寫入）
+        self.terminal_log_file = open(self.terminal_log_filename, 'w', encoding='utf-8', buffering=1)
+        
+        # 自定義 print 函數（同時輸出到終端和檔案）
+        self.original_print = print
+        import builtins
+        builtins.print = self._log_print
+        
+        print("=" * 80)
+        print("� Task 1.6.1 - Phase C: 紙面交易系統 (Paper Trading System)")
+        print("=" * 80)
+        print()
+        
+        # 市場指標說明
+        print("─" * 80)
+        print("📖 市場指標說明")
+        print("─" * 80)
+        print("📊 OBI (Order Book Imbalance)     訂單簿失衡度 [-1, 1]")
+        print("   • 正值 = 買盤強勢 | 負值 = 賣盤強勢 | 0 = 平衡")
+        print("   • 越接近 ±1 代表失衡越嚴重")
+        print()
+        print("⚡ OBI Velocity                    OBI 變化率 (速度)")
+        print("   • 正值 = 買盤增強 | 負值 = 賣盤增強")
+        print("   • 絕對值越大代表變化越快")
+        print()
+        print("📈 Signed Volume                   淨成交量 (買-賣)")
+        print("   • 正值 = 主動買單多 | 負值 = 主動賣單多")
+        print("   • 反映短期買賣壓力")
+        print()
+        print("☠️  VPIN (Volume-Synchronized PIN)  毒性指標 [0, 1]")
+        print("   • 0 = 低風險 | 1 = 高風險")
+        print("   • >0.5 表示知情交易者活躍，需謹慎")
+        print()
+        print("💹 Spread                          買賣價差 (bps)")
+        print("   • 越小 = 流動性越好 | 越大 = 流動性差")
+        print()
+        print("🏊 Depth                           訂單簿深度 (BTC)")
+        print("   • 前5檔買賣單總量，反映市場承接力")
+        print("─" * 80)
+        print()
+        
+        # 圖示說明
+        print("─" * 80)
+        print("🎨 圖示說明")
+        print("─" * 80)
+        print("交易方向:  📈 LONG (做多)  |  📉 SHORT (做空)  |  ⚖️  NEUTRAL (中立)")
+        print("風險等級:  🟢 SAFE (安全)  |  🟡 WARNING (警告)  |  🔴 CRITICAL (嚴重)")
+        print("持倉狀態:  🏦 空倉  |  📊 持倉中")
+        print("開倉:      🚀 開倉  |  🔔 平倉")
+        print("平倉原因:  🎯 TAKE_PROFIT (止盈)  |  🛑 STOP_LOSS (止損)  |  🔄 REVERSE_SIGNAL (反向)")
+        print("─" * 80)
+        print()
+        
+        # 風控模式對比
+        print("🎯 風控模式對比:")
+        print("   Mode 0: ❌ 無風控（所有信號都交易）")
+        print("   Mode 1: 🟡 僅 VPIN 風控")
+        print("   Mode 2: 🔵 僅流動性風控（Spread/Depth）")
+        print("   Mode 3: 🟢 完整風控（所有指標）")
+        print()
+        
+        # 配置信息
+        print("⏱️  測試配置:")
+        print("   💹 交易對: BTCUSDT")
+        print(f"   ⚡ 決策模式: 動態觸發 (最快5秒 / 最慢{decision_interval}秒)")
+        print("   🎯 觸發條件:")
+        print("      • 強烈信號: |OBI| > 0.6")
+        print("      • 快速變化: |ΔOBI| > 0.3")
+        print("      • 方向反轉: OBI跨越0軸")
+        print()
+        print("💰 資金配置:")
+        print(f"   💵 初始本金: {initial_capital} USDT (每模式)")
+        print(f"   📊 {len(self.active_modes)} 個策略已載入 (槓桿已在上方顯示)")
+        print("   📐 倉位策略: 🐢 保守 30% | 🚶 中等 50% | 🏃 激進 80%")
+        print()
+        print("💸 費率設定:")
+        print("   ✅ Maker 手續費: 0.02%")
+        print("   💳 Taker 手續費: 0.05%")
+        print("   💰 資金費率: 0.003%/小時")
+        print()
+        print("🎯 風控設定:")
+        print("   🟢 安全模式: 槓桿 5x | 止損 5% | 止盈 8%")
+        print("   🟡 警告模式: 槓桿 2x | 止損 8% | 止盈 12%")
+        print("   🔴 危險模式: 槓桿 1x | 止損 10% | 止盈 15%")
+        print()
+        print("=" * 80)
+        print()
+    
+    async def initialize_orderbook(self):
+        """使用 REST API 初始化訂單簿數據"""
+        if self.is_initialized:
+            return
+            
+        print("📥 初始化訂單簿數據...")
+        
+        try:
+            # 使用 Binance REST API 獲取初始訂單簿
+            url = "https://fapi.binance.com/fapi/v1/depth?symbol=BTCUSDT&limit=20"
+            
+            with urlopen(url, timeout=5) as response:
+                orderbook = json.loads(response.read().decode())
+                
+                # 轉換為浮點數
+                bids = [[float(p), float(q)] for p, q in orderbook['bids']]
+                asks = [[float(p), float(q)] for p, q in orderbook['asks']]
+                
+                # 初始化所有指標
+                self.obi_calc.update_orderbook(bids, asks)
+                self.spread_depth.update(bids, asks)
+                
+                # 更新最新價格
+                self.latest_price = (bids[0][0] + asks[0][0]) / 2
+                
+                print(f"   ✅ 訂單簿已初始化")
+                print(f"   最佳買價: {bids[0][0]:,.2f}")
+                print(f"   最佳賣價: {asks[0][0]:,.2f}")
+                print(f"   當前價格: ${self.latest_price:,.2f}")
+                print(f"   買單量 (20檔): {sum(q for _, q in bids):.4f} BTC")
+                print(f"   賣單量 (20檔): {sum(q for _, q in asks):.4f} BTC")
+                
+                # 計算初始 OBI
+                obi_data = self.obi_calc.get_current_obi()
+                if obi_data:
+                    print(f"   初始 OBI: {obi_data['obi']:+.4f}")
+                print()
+                
+                self.is_initialized = True
+                
+        except Exception as e:
+            print(f"   ⚠️ 初始化失敗: {e}")
+            print("   將使用 WebSocket 數據")
+    
+    async def connect_websocket(self):
+        """連接 Binance WebSocket"""
+        streams = [
+            "btcusdt@bookTicker",  # 最優買賣價
+            "btcusdt@depth20@100ms",  # 訂單簿深度
+            "btcusdt@aggTrade"  # 聚合交易
+        ]
+        url = f"wss://fstream.binance.com/stream?streams={'/'.join(streams)}"
+        
+        print("🔌 連接 Binance WebSocket...")
+        self.ws = await websockets.connect(url)
+        print("✅ WebSocket 已連接")
+        print()
+    
+    async def handle_message(self, msg: dict):
+        """處理 WebSocket 消息"""
+        stream = msg.get('stream', '')
+        data = msg.get('data', {})
+        
+        if 'bookTicker' in stream:
+            # 最優買賣價
+            self.latest_price = (float(data['b']) + float(data['a'])) / 2
+            self.orderbook_timestamp = data['E']
+            
+        elif 'depth' in stream:
+            # 訂單簿深度
+            bids = [[float(p), float(q)] for p, q in data['b']]
+            asks = [[float(p), float(q)] for p, q in data['a']]
+            
+            # 更新 OBI
+            self.obi_calc.update_orderbook(bids, asks)
+            
+            # 更新 Spread/Depth
+            self.spread_depth.update(bids, asks)
+            
+        elif 'aggTrade' in stream:
+            # 交易數據
+            # 更新 Signed Volume
+            self.signed_volume.add_trade(data)
+            
+            # 更新 VPIN
+            self.vpin_calc.process_trade(data)
+    
+    async def make_decision(self) -> dict:
+        """生成交易決策"""
+        # 步驟 1: 獲取 OBI
+        print("   🔍 [1/6] 計算 OBI (訂單簿失衡)...", end='', flush=True)
+        await asyncio.sleep(0.05)
+        obi_data = self.obi_calc.get_current_obi()
+        if obi_data is None:
+            print(" ❌ 數據不足")
+            return None
+        
+        current_obi = obi_data['obi']
+        print(f" ✅ OBI = {current_obi:+.4f}")
+        
+        # 計算 OBI velocity
+        self.obi_history.append(current_obi)
+        
+        # 更新多時間框架 OBI 歷史 (for Mode 13)
+        self.obi_5min_history.append(current_obi)
+        self.obi_15min_history.append(current_obi)
+        self.obi_30min_history.append(current_obi)
+        self.obi_1hour_history.append(current_obi)
+        self.obi_4hour_history.append(current_obi)
+        self.obi_8hour_history.append(current_obi)
+        
+        obi_velocity = 0.0
+        if len(self.obi_history) >= 2:
+            obi_velocity = self.obi_history[-1] - self.obi_history[-2]
+        
+        # 步驟 2: 獲取訂單簿
+        print("   🔍 [2/6] 分析訂單簿深度...", end='', flush=True)
+        await asyncio.sleep(0.05)
+        bids = self.obi_calc.orderbook.get('bids', [])
+        asks = self.obi_calc.orderbook.get('asks', [])
+        
+        if not bids or not asks:
+            print(" ❌ 訂單簿不完整")
+            return None
+        print(f" ✅ Bids/Asks = {len(bids)}/{len(asks)} 檔")
+        
+        # 步驟 3: 計算 Signed Volume
+        print("   🔍 [3/6] 計算 Signed Volume (買賣壓力)...", end='', flush=True)
+        await asyncio.sleep(0.05)
+        signed_vol = self.signed_volume.calculate_signed_volume()
+        volume_imbalance = self.signed_volume.calculate_volume_imbalance()
+        print(f" ✅ SV = {signed_vol:+.2f}")
+        
+        # 步驟 4: 計算 VPIN
+        print("   🔍 [4/6] 計算 VPIN (毒性指標)...", end='', flush=True)
+        await asyncio.sleep(0.05)
+        vpin = self.vpin_calc.calculate_vpin()
+        vpin_display = vpin if vpin is not None else 0.3
+        print(f" ✅ VPIN = {vpin_display:.3f}")
+        
+        # 🆕 記錄 VPIN 歷史（用於視覺化報告）
+        if vpin is not None:
+            current_time = int(time.time() * 1000)
+            self.vpin_history.append((current_time, vpin))
+        
+        # 步驟 5: 計算 Spread & Depth
+        print("   🔍 [5/6] 計算 Spread & Depth (流動性)...", end='', flush=True)
+        await asyncio.sleep(0.05)
+        spread_data = self.spread_depth.calculate_spread(bids, asks)
+        depth_data = self.spread_depth.calculate_depth(bids, asks)
+        
+        spread_bps = spread_data.get('spread_bps', 5.0) if spread_data else 5.0
+        total_depth = depth_data.get('total_depth', 5.0) if depth_data else 5.0
+        print(f" ✅ Spread = {spread_bps:.2f} bps, Depth = {total_depth:.2f} BTC")
+        
+        # 使用默認值避免數據未就緒
+        if vpin is None:
+            vpin = 0.3
+        if signed_vol is None:
+            signed_vol = 0.0
+        if not spread_data:
+            spread_data = {'spread_bps': 5.0}
+        if not depth_data:
+            depth_data = {'total_depth': 5.0, 'depth_imbalance': 0.0}
+        
+        # 整合市場數據
+        market_data = {
+            'obi': float(current_obi),
+            'obi_velocity': float(obi_velocity),
+            'signed_volume': float(signed_vol),
+            'volume_imbalance': float(volume_imbalance.get('imbalance', 0.0)),
+            'vpin': float(vpin),
+            'spread_bps': float(spread_data.get('spread_bps', 5.0)),
+            'total_depth': float(depth_data.get('total_depth', 5.0)),
+            'depth_imbalance': float(depth_data.get('depth_imbalance', 0.0)),
+            'price': self.latest_price,
+            'timestamp': self.orderbook_timestamp,
+            # 多時間框架 OBI (for Mode 13)
+            'obi_5min': self._calculate_timeframe_obi(self.obi_5min_history),
+            'obi_15min': self._calculate_timeframe_obi(self.obi_15min_history),
+            'obi_30min': self._calculate_timeframe_obi(self.obi_30min_history),
+            'obi_1hour': self._calculate_timeframe_obi(self.obi_1hour_history),
+            'obi_4hour': self._calculate_timeframe_obi(self.obi_4hour_history),
+            'obi_8hour': self._calculate_timeframe_obi(self.obi_8hour_history)
+        }
+        
+        # 計算風險等級
+        risk_level = self._determine_risk_level(market_data)
+        
+        # 步驟 6: 生成交易決策
+        print("   🔍 [6/6] 生成交易決策 (分層引擎)...", end='', flush=True)
+        await asyncio.sleep(0.05)
+        decision = self.trading_engine.process_market_data(market_data)
+        decision['risk_level'] = risk_level
+        decision['market_data'] = market_data
+        print(f" ✅ 信號 = {decision['signal']['direction']}")
+        print()
+        
+        return decision
+    
+    def _calculate_timeframe_obi(self, obi_history: deque) -> float:
+        """計算指定時間框架的 OBI 平均值"""
+        if len(obi_history) == 0:
+            return 0.0
+        return float(np.mean(obi_history))
+    
+    def _on_config_reload(self, new_config: dict):
+        """配置重載回調函數"""
+        print("🔄 正在應用新配置...")
+        
+        # 重新載入策略管理器
+        self.strategy_manager = StrategyManager(self.config_monitor.config_path)
+        
+        # 更新活躍策略列表
+        old_modes = set(self.active_modes)
+        new_modes = set(self.strategy_manager.get_all_modes())
+        
+        # 新增的策略
+        added_modes = new_modes - old_modes
+        for mode in added_modes:
+            self.orders[mode] = []
+            self.positions[mode] = None
+            self.balances[mode] = self.initial_capital
+            print(f"   ✨ 新增策略: {mode}")
+        
+        # 移除的策略（保留數據，但不再交易）
+        removed_modes = old_modes - new_modes
+        for mode in removed_modes:
+            print(f"   🗑️  移除策略: {mode}")
+        
+        # 更新活躍模式列表
+        self.active_modes = list(new_modes)
+        
+        print(f"✅ 配置已應用，當前共 {len(self.active_modes)} 個策略")
+    
+    def _determine_risk_level(self, market_data: dict) -> str:
+        """根據指標計算風險等級"""
+        vpin = market_data.get('vpin', 0.3)
+        spread_bps = market_data.get('spread_bps', 5.0)
+        total_depth = market_data.get('total_depth', 5.0)
+        
+        # 風險評分
+        risk_score = 0
+        
+        # VPIN 風險
+        if vpin > 0.7:
+            risk_score += 3
+        elif vpin > 0.5:
+            risk_score += 2
+        elif vpin > 0.3:
+            risk_score += 1
+        
+        # Spread 風險
+        if spread_bps > 15:
+            risk_score += 3
+        elif spread_bps > 10:
+            risk_score += 2
+        elif spread_bps > 5:
+            risk_score += 1
+        
+        # Depth 風險
+        if total_depth < 2:
+            risk_score += 3
+        elif total_depth < 3:
+            risk_score += 2
+        elif total_depth < 5:
+            risk_score += 1
+        
+        # 判定風險等級
+        if risk_score >= 7:
+            return 'CRITICAL'
+        elif risk_score >= 5:
+            return 'DANGER'
+        elif risk_score >= 3:
+            return 'WARNING'
+        else:
+            return 'SAFE'
+    
+    def apply_risk_control(self, decision: dict, mode: str) -> Tuple[bool, List[str]]:
+        """應用風控規則（使用策略管理器）"""
+        market_data = decision.get('market_data', {})
+        signal = decision.get('signal', {})
+        
+        # 使用策略管理器的風控檢查
+        can_trade, blocked_reasons = self.strategy_manager.apply_risk_control(
+            mode, market_data, signal
+        )
+        
+        return can_trade, blocked_reasons
+    
+    def print_trade_timeline(self, decision: dict, timestamp: str):
+        """顯示即時交易時間軸記錄"""
+        signal = decision['signal']
+        market_data = decision.get('market_data', {})
+        obi = market_data.get('obi', 0)
+        
+        # 獲取信號類型
+        signal_map = {
+            'LONG': 'STRONG_BUY' if abs(obi) > 0.5 else 'BUY',
+            'SHORT': 'STRONG_SELL' if abs(obi) > 0.5 else 'SELL',
+            'NEUTRAL': 'NEUTRAL'
+        }
+        signal_type = signal_map.get(signal['direction'], 'NEUTRAL')
+        
+        # 顯示每個模式的狀態
+        print()
+        print("� 資金競賽排行榜:")
+        print("-" * 80)
+        
+        # 計算每個模式的總資產（餘額 + 未實現盈虧）
+        mode_balances = []
+        for mode in self.active_modes:
+            # 從策略管理器獲取策略信息
+            strategy_info = self.strategy_manager.get_strategy_info(mode)
+            mode_label = f"{strategy_info['emoji']} {strategy_info['name'][:8]}"  # 截短名稱
+            
+            balance = self.balances[mode]
+            position = self.positions[mode]
+            
+            # 加上未實現盈虧
+            total_equity = balance
+            unrealized_pnl_usdt = 0
+            if position:
+                if position.direction == "LONG":
+                    unrealized_pnl = ((self.latest_price - position.actual_entry_price) / 
+                                     position.actual_entry_price) * 100 * position.leverage
+                else:
+                    unrealized_pnl = ((position.actual_entry_price - self.latest_price) / 
+                                     position.actual_entry_price) * 100 * position.leverage
+                unrealized_pnl_usdt = (unrealized_pnl / 100) * position.capital
+                total_equity += unrealized_pnl_usdt
+            
+            mode_balances.append((mode, mode_label, balance, unrealized_pnl_usdt, total_equity))
+        
+        # ====== 排行榜 #1: 已實現損益 ======
+        print("💰 [已實現損益] 排行榜 (已平倉獲利):")
+        print("-" * 80)
+        
+        # 按已實現餘額排序
+        realized_ranking = sorted(mode_balances, key=lambda x: x[2], reverse=True)
+        rank_emojis = ['🥇', '🥈', '🥉'] + [f'{i:2d}.' for i in range(4, len(realized_ranking)+1)]
+        
+        for i, (mode, label, balance, unrealized, total) in enumerate(realized_ranking):
+            if i >= len(rank_emojis):
+                break
+            rank = rank_emojis[i]
+            realized_pnl = balance - self.initial_capital
+            realized_pct = (realized_pnl / self.initial_capital) * 100
+            pnl_emoji = "🟢" if realized_pct >= 0 else "🔴"
+            leverage = self.strategy_manager.get_leverage(mode)
+            
+            print(f"{rank} {label} | 💰 {balance:.2f} USDT ({realized_pnl:+.2f}) | {pnl_emoji} {realized_pct:+.2f}% | ⚡ {leverage}x槓桿")
+        
+        print("-" * 80)
+        
+        # ====== 排行榜 #2: 未實現損益 ======
+        print("📊 [未實現損益] 排行榜 (持倉中浮動盈虧):")
+        print("-" * 80)
+        
+        # 按未實現盈虧排序
+        unrealized_ranking = sorted(mode_balances, key=lambda x: x[3], reverse=True)
+        
+        for i, (mode, label, balance, unrealized, total) in enumerate(unrealized_ranking):
+            if i >= len(rank_emojis):
+                break
+            rank = rank_emojis[i]
+            
+            if unrealized != 0:
+                unrealized_pct = (unrealized / self.initial_capital) * 100
+                pnl_emoji = "🟢" if unrealized >= 0 else "🔴"
+                leverage = self.strategy_manager.get_leverage(mode)
+                print(f"{rank} {label} | � {unrealized:+.2f} USDT | {pnl_emoji} {unrealized_pct:+.2f}% | ⚡ {leverage}x槓桿")
+            else:
+                leverage = self.strategy_manager.get_leverage(mode)
+                print(f"{rank} {label} | � 無持倉 | ⚪ 0.00% | ⚡ {leverage}x槓桿")
+        
+        print("-" * 80)
+        
+        print()
+        print("�📋 即時交易記錄:")
+        print("-" * 80)
+        
+        for mode in self.active_modes:
+            strategy_info = self.strategy_manager.get_strategy_info(mode)
+            mode_label = f"{strategy_info['emoji']} {strategy_info['name'][:8]}"
+            
+            position = self.positions[mode]
+            
+            if position:
+                # 有持倉
+                direction_emoji = "📈" if position.direction == "LONG" else "📉"
+                
+                # 計算未實現盈虧
+                if position.direction == "LONG":
+                    unrealized_pnl = ((self.latest_price - position.actual_entry_price) / 
+                                     position.actual_entry_price) * 100 * position.leverage
+                else:
+                    unrealized_pnl = ((position.actual_entry_price - self.latest_price) / 
+                                     position.actual_entry_price) * 100 * position.leverage
+                
+                pnl_emoji = "🟢" if unrealized_pnl > 0 else "🔴"
+                status = f"持有 {position.direction}"
+                
+                print(f"{timestamp} | {obi:+7.4f} | {signal_type:<12} | {mode_label} | {direction_emoji} {status:<8} | {pnl_emoji} {unrealized_pnl:+.2f}%")
+            else:
+                # 空倉
+                status = "空倉"
+                action = "觀望"
+                print(f"{timestamp} | {obi:+7.4f} | {signal_type:<12} | {mode_label} | 🏦 {status:<8} | {action}")
+        
+        print("-" * 80)
+    
+    def create_orders(self, decision: dict):
+        """為每種模式創建訂單"""
+        if decision is None:
+            return
+        
+        signal = decision['signal']
+        
+        # 為每種啟用的策略創建訂單
+        for mode in self.active_modes:
+            # 跳過已有持倉的模式
+            if self.positions[mode] is not None:
+                continue
+            
+            # 獲取策略信息
+            strategy_info = self.strategy_manager.get_strategy_info(mode)
+            
+            # Mode 0 和 Mode 0' 強制交易所有信號（包括 NEUTRAL）
+            # 其他模式只對 LONG/SHORT 創建訂單
+            if mode in ['mode_0_baseline', 'mode_0_reverse']:
+                # 如果是 NEUTRAL，根據 OBI 決定方向
+                if signal['direction'] == 'NEUTRAL':
+                    market_data = decision.get('market_data', {})
+                    obi = market_data.get('obi', 0)
+                    
+                    if obi > 0:
+                        forced_direction = 'LONG'
+                    elif obi < 0:
+                        forced_direction = 'SHORT'
+                    else:
+                        signed_vol = market_data.get('signed_volume', 0)
+                        forced_direction = 'LONG' if signed_vol >= 0 else 'SHORT'
+                    
+                    forced_signal = signal.copy()
+                    forced_signal['direction'] = forced_direction
+                    forced_signal['forced'] = True
+                    
+                    # 反向交易: 翻轉信號
+                    if mode == 'mode_0_reverse':
+                        forced_signal['direction'] = 'SHORT' if forced_direction == 'LONG' else 'LONG'
+                        forced_signal['reversed'] = True
+                        print(f"  [{strategy_info['emoji']} {strategy_info['name']}] 🔄 反向強制: NEUTRAL → {forced_direction} → {forced_signal['direction']} (OBI={obi:+.4f})")
+                    else:
+                        print(f"  [{strategy_info['emoji']} {strategy_info['name']}] ⚠️  強制交易: NEUTRAL → {forced_direction} (OBI={obi:+.4f})")
+                else:
+                    forced_signal = signal.copy()
+                    # 反向交易: 翻轉信號
+                    if mode == 'mode_0_reverse':
+                        forced_signal['direction'] = 'SHORT' if signal['direction'] == 'LONG' else 'LONG'
+                        forced_signal['reversed'] = True
+            else:
+                # 其他模式：只對 LONG/SHORT 創建訂單
+                if signal['direction'] == 'NEUTRAL':
+                    continue
+                forced_signal = signal
+            
+            # 創建訂單（使用策略管理器的參數）
+            order = SimulatedOrder(
+                order_id=self.order_counter,
+                timestamp=self.orderbook_timestamp,
+                price=self.latest_price,
+                signal=forced_signal,
+                market_data=decision.get('market_data', {}),
+                mode=mode,
+                capital=self.balances[mode],
+                leverage=strategy_info['leverage']  # 使用策略配置的槓桿
+            )
+            self.order_counter += 1
+            
+            # 應用風控
+            can_trade, blocked_reasons = self.apply_risk_control(decision, mode)
+            
+            if can_trade:
+                # 開倉
+                self.positions[mode] = order
+                order.status = "OPEN"
+                
+                direction_emoji = "📈" if order.direction == "LONG" else "📉"
+                leverage_emoji = "🐢" if order.leverage <= 2 else ("🚶" if order.leverage <= 5 else "🏃")
+                
+                # 即時交易訊息 - 增強視覺效果
+                print()
+                print()
+                
+                # 根據方向選擇顏色和圖示
+                if order.direction == "LONG":
+                    direction_emoji = "📈"
+                    direction_text = "做多 LONG"
+                    border_char = "🟢"
+                else:
+                    direction_emoji = "📉"
+                    direction_text = "做空 SHORT"
+                    border_char = "🔴"
+                
+                # 計算預計持有時間（基於策略）
+                if mode == 'mode_13_adaptive':
+                    expected_hold = "最長 8小時"
+                elif mode == 'mode_14_dynamic_leverage':
+                    expected_hold = "動態調整"
+                elif 'baseline' in mode or 'reverse' in mode:
+                    expected_hold = "快速進出 (<1分鐘)"
+                else:
+                    expected_hold = "最長 2小時"
+                
+                # 獲取當前時間
+                current_time = datetime.now().strftime('%H:%M:%S')
+                
+                print(f"{border_char * 40}")
+                print(f"{'':^80}")
+                print(f"{direction_emoji * 3}  {direction_text}  {direction_emoji * 3}".center(80))
+                print(f"{'':^80}")
+                print(f"{border_char * 40}")
+                print()
+                print(f"   ⏰ 開倉時間: {current_time}")
+                print(f"   🎯 策略模式: {strategy_info['emoji']} {strategy_info['name']}")
+                print(f"   💰 進場價格: {order.actual_entry_price:.2f} USDT")
+                market_data = decision.get('market_data', {})
+                print(f"   📊 進場 OBI: {market_data.get('obi', 0):+.4f}")
+                btc_amount = order.position_value / order.actual_entry_price
+                print(f"   🪙 倉位大小: {btc_amount:.4f} BTC")
+                print()
+                print(f"   {leverage_emoji} 槓桿倍數: {order.leverage}x")
+                print(f"   📐 倉位比例: {order.size*100:.0f}%")
+                print(f"   � 倉位價值: ${order.position_value:.2f} USDT")
+                print(f"   ⏱️  預計持有: {expected_hold}")
+                print()
+                print(f"{border_char * 40}")
+                print()
+            else:
+                # 阻擋
+                order.block(blocked_reasons)
+                
+                print(f"  [{strategy_info['emoji']} {strategy_info['name']}] ❌ 阻擋交易")
+                print(f"         原因: {', '.join(blocked_reasons)}")
+            
+            self.orders[mode].append(order)
+    
+    def check_exits(self, current_decision: dict):
+        """檢查所有持倉是否應該平倉"""
+        for mode, position in self.positions.items():
+            if position is None:
+                continue
+            
+            # 獲取策略信息
+            strategy_info = self.strategy_manager.get_strategy_info(mode)
+            
+            # 獲取當前市場數據
+            current_market_data = current_decision.get('market_data', {})
+            current_obi = current_market_data.get('obi', 0)
+            
+            # 檢查平倉條件（添加 market_data 參數）
+            exit_reason = position.check_exit(
+                current_price=self.latest_price,
+                current_signal=current_decision['signal'],
+                current_obi=current_obi,
+                market_data=current_market_data
+            )
+            
+            if exit_reason:
+                # 平倉
+                position.close(
+                    exit_price=self.latest_price,
+                    reason=exit_reason,
+                    timestamp=self.orderbook_timestamp
+                )
+                
+                # 更新餘額
+                self.balances[mode] += position.pnl_usdt
+                
+                # 即時平倉訊息 - 增強視覺效果
+                direction_emoji = "📈" if position.direction == "LONG" else "📉"
+                roi_emoji = "🟢" if position.roi > 0 else "🔴"
+                
+                exit_reason_emoji = {
+                    'TAKE_PROFIT': '🎯',
+                    'STOP_LOSS': '🛑',
+                    'REVERSE_SIGNAL': '🔄',
+                    'TIME_LIMIT': '⏰',
+                    'TRAILING_STOP': '📉',
+                    'TIME_STOP': '⏱️',
+                    'VPIN_SPIKE': '☠️'  # 新增：VPIN 突然飆升
+                }.get(exit_reason, '🔔')
+                
+                # 根據盈虧選擇邊框
+                if position.roi > 0:
+                    border_char = "🟢"
+                    result_text = "獲利平倉"
+                elif position.roi < 0:
+                    border_char = "🔴"
+                    result_text = "虧損平倉"
+                else:
+                    border_char = "⚪"
+                    result_text = "平倉"
+                
+                # 格式化持有時間
+                hold_seconds = position.holding_seconds
+                if hold_seconds < 60:
+                    hold_time_str = f"{hold_seconds:.1f} 秒"
+                elif hold_seconds < 3600:
+                    hold_time_str = f"{hold_seconds/60:.1f} 分鐘"
+                else:
+                    hold_time_str = f"{hold_seconds/3600:.2f} 小時"
+                
+                # 獲取當前時間
+                current_time = datetime.now().strftime('%H:%M:%S')
+                
+                print()
+                print()
+                print(f"{border_char * 40}")
+                print(f"{'':^80}")
+                print(f"{exit_reason_emoji * 3}  {result_text}  {exit_reason_emoji * 3}".center(80))
+                print(f"{'':^80}")
+                print(f"{border_char * 40}")
+                print()
+                print(f"   ⏰ 平倉時間: {current_time}")
+                print(f"   🎯 策略模式: {strategy_info['emoji']} {strategy_info['name']}")
+                print(f"   {direction_emoji} 方向: {position.direction}")
+                print()
+                print(f"   💰 進場價格: {position.actual_entry_price:.2f} USDT")
+                print(f"   💰 出場價格: {position.exit_price:.2f} USDT")
+                print(f"   📊 出場 OBI: {current_decision.get('market_data', {}).get('obi', 0):+.4f}")
+                print()
+                print(f"   ⏱️  持有時長: {hold_time_str}")
+                print(f"   ⚡ 槓桿倍數: {position.leverage}x")
+                print(f"   💵 倉位價值: {position.position_value:.2f} USDT")
+                print()
+                print(f"   📊 手續費明細:")
+                print(f"      • 開倉手續費: {position.entry_fee:.4f} USDT (0.05%)")
+                print(f"      • 平倉手續費: {position.exit_fee:.4f} USDT (0.05%)")
+                print(f"      • 資金費率: {position.funding_fee:.4f} USDT ({position.holding_seconds/3600:.4f}hr)")
+                print(f"      • 總手續費: {position.total_fees:.4f} USDT")
+                print()
+                print(f"   {roi_emoji} 本次盈虧: {position.roi:+.2f}% ({position.pnl_usdt:+.2f} USDT)")
+                print(f"   💰 當前餘額: {self.balances[mode]:.2f} USDT (起始 {self.initial_capital:.2f})")
+                print(f"   {exit_reason_emoji} 平倉原因: {exit_reason}")
+                print()
+                print(f"{border_char * 40}")
+                print()
+                
+                # 🆕 立即保存到檔案
+                self._append_order_to_file(mode, position)
+                
+                # 🆕 更新視覺化報告（每次平倉後）
+                self._update_visual_report()
+                
+                # 清空持倉
+                self.positions[mode] = None
+    
+    def should_trigger_decision(self) -> Tuple[bool, str]:
+        """檢查是否應該觸發決策 (動態觸發機制)"""
+        if len(self.obi_history) < 2:
+            return False, ""
+        
+        current_obi = self.obi_history[-1]
+        prev_obi = self.obi_history[-2]
+        obi_change = current_obi - prev_obi
+        
+        # 觸發條件 1: 強烈信號 (OBI 絕對值 > 0.6)
+        if abs(current_obi) > 0.6:
+            return True, f"強烈信號 OBI={current_obi:+.4f}"
+        
+        # 觸發條件 2: 快速變化 (變化率 > 0.3)
+        if abs(obi_change) > 0.3:
+            return True, f"快速變化 Δ={obi_change:+.4f}"
+        
+        # 觸發條件 3: 跨越0軸 (方向反轉)
+        if (prev_obi > 0 and current_obi < 0) or (prev_obi < 0 and current_obi > 0):
+            return True, f"方向反轉 {prev_obi:+.2f}→{current_obi:+.2f}"
+        
+        return False, ""
+    
+    async def decision_loop(self, duration_minutes: int):
+        """動態決策循環 (事件驅動 + 定期檢查)"""
+        print("🔥 開始紙面交易...")
+        print()
+        
+        start_time = time.time()
+        end_time = start_time + (duration_minutes * 60)
+        last_decision_time = 0
+        min_decision_interval = 5  # 最小間隔5秒,避免過度交易
+        max_decision_interval = 15  # 最大間隔15秒,定期檢查
+        
+        while time.time() < end_time:
+            current_time = time.time()
+            time_since_last = current_time - last_decision_time
+            
+            # 檢查配置更新（每3秒）
+            if current_time - self.last_config_check >= self.config_monitor.check_interval:
+                self.config_monitor.check_for_updates()
+                self.last_config_check = current_time
+            
+            # 檢查是否應該觸發決策
+            should_trigger, trigger_reason = self.should_trigger_decision()
+            
+            # 決策條件:
+            # 1. 動態觸發 + 冷卻時間已過
+            # 2. 超過最大間隔 (定期檢查)
+            if (should_trigger and time_since_last >= min_decision_interval) or \
+               (time_since_last >= max_decision_interval):
+                
+                self.total_decisions += 1
+                last_decision_time = current_time
+                
+                timestamp = datetime.fromtimestamp(
+                    time.time()
+                ).strftime('%H:%M:%S')
+                
+                # 清除之前的動態顯示
+                print("\r" + " " * 100 + "\r", end='')
+                
+                print(f"\n{'=' * 80}")
+                if should_trigger:
+                    print(f"[{timestamp}] ⚡ 動態觸發決策 #{self.total_decisions} - {trigger_reason}")
+                else:
+                    print(f"[{timestamp}] 🧠 定期決策分析 #{self.total_decisions}")
+                print(f"{'=' * 80}")
+                
+                # 生成決策（會顯示分析過程）
+                decision = await self.make_decision()
+                
+                if decision:
+                    # 決策標題
+                    print("─" * 80)
+                    print("📊 決策結果")
+                    print("─" * 80)
+                    
+                    # 當前價格和持倉狀態
+                    print(f"💰 當前價格: ${self.latest_price:,.2f}")
+                    
+                    # 顯示各模式持倉狀態
+                    has_position = any(pos is not None for pos in self.positions.values())
+                    if has_position:
+                        print(f"📊 持倉狀態:")
+                        for mode, pos in self.positions.items():
+                            if pos:
+                                strategy_info = self.strategy_manager.get_strategy_info(mode)
+                                mode_name = f"{strategy_info['emoji']} {strategy_info['name'][:8]}"
+                                direction_emoji = "📈" if pos.direction == "LONG" else "📉"
+                                
+                                # 計算未實現盈虧
+                                if pos.direction == "LONG":
+                                    unrealized_pnl = ((self.latest_price - pos.actual_entry_price) / 
+                                                     pos.actual_entry_price) * 100 * pos.leverage
+                                else:
+                                    unrealized_pnl = ((pos.actual_entry_price - self.latest_price) / 
+                                                     pos.actual_entry_price) * 100 * pos.leverage
+                                
+                                pnl_emoji = "🟢" if unrealized_pnl > 0 else "🔴"
+                                print(f"   {mode_name}: {direction_emoji} {pos.direction} @ ${pos.actual_entry_price:,.2f} | "
+                                      f"{pnl_emoji} 未實現: {unrealized_pnl:+.2f}%")
+                    else:
+                        print(f"📊 持倉狀態: 🏦 空倉")
+                    print()
+                    
+                    # 交易信號
+                    signal = decision['signal']
+                    direction = signal['direction']
+                    confidence = signal['confidence']
+                    
+                    direction_emoji = {
+                        'LONG': '📈',
+                        'SHORT': '📉',
+                        'NEUTRAL': '⚖️'
+                    }.get(direction, '⚖️')
+                    
+                    print(f"🎯 交易信號:")
+                    print(f"   方向: {direction_emoji} {direction}")
+                    print(f"   信心度: {confidence:.3f}")
+                    
+                    # 風險等級
+                    market_data = decision.get('market_data', {})
+                    risk_level = decision.get('risk_level', 'UNKNOWN')
+                    risk_emoji = {
+                        'SAFE': '🟢',
+                        'WARNING': '🟡',
+                        'DANGER': '🟠',
+                        'CRITICAL': '🔴'
+                    }.get(risk_level, '⚪')
+                    print(f"   風險等級: {risk_emoji} {risk_level}")
+                    print()
+                    
+                    # 市場指標 (帶狀態emoji)
+                    print(f"📈 市場指標:")
+                    
+                    # OBI 狀態
+                    obi_val = market_data.get('obi', 0)
+                    if abs(obi_val) > 0.6:
+                        obi_emoji = "🔴"
+                        obi_status = "極度失衡"
+                    elif abs(obi_val) > 0.4:
+                        obi_emoji = "🟡"
+                        obi_status = "中度失衡"
+                    else:
+                        obi_emoji = "🟢"
+                        obi_status = "平衡"
+                    print(f"   {obi_emoji} OBI (訂單簿失衡): {obi_val:+.4f} ({obi_status})")
+                    
+                    # OBI Velocity
+                    obi_vel = market_data.get('obi_velocity', 0)
+                    if abs(obi_vel) > 0.3:
+                        vel_emoji = "⚡"
+                        vel_status = "快速變化"
+                    else:
+                        vel_emoji = "➡️"
+                        vel_status = "穩定"
+                    print(f"   {vel_emoji} OBI Velocity (變化率): {obi_vel:+.4f} ({vel_status})")
+                    
+                    # Signed Volume
+                    sv = market_data.get('signed_volume', 0)
+                    if abs(sv) > 5:
+                        sv_emoji = "💥"
+                        sv_status = "強力買賣壓" if sv > 0 else "強力賣壓"
+                    elif abs(sv) > 2:
+                        sv_emoji = "🔥"
+                        sv_status = "買壓較強" if sv > 0 else "賣壓較強"
+                    else:
+                        sv_emoji = "💤"
+                        sv_status = "平靜"
+                    print(f"   {sv_emoji} Signed Volume (淨量): {sv:+.2f} ({sv_status})")
+                    
+                    # VPIN
+                    vpin_val = market_data.get('vpin', 0)
+                    if vpin_val > 0.7:
+                        vpin_emoji = "☠️"
+                        vpin_status = "高毒性"
+                    elif vpin_val > 0.5:
+                        vpin_emoji = "⚠️"
+                        vpin_status = "中毒性"
+                    elif vpin_val > 0.3:
+                        vpin_emoji = "🟡"
+                        vpin_status = "輕微毒性"
+                    else:
+                        vpin_emoji = "🟢"
+                        vpin_status = "安全"
+                    print(f"   {vpin_emoji} VPIN (毒性): {vpin_val:.3f} ({vpin_status})")
+                    
+                    # Spread
+                    spread_val = market_data.get('spread_bps', 0)
+                    if spread_val > 10:
+                        spread_emoji = "🔴"
+                        spread_status = "流動性差"
+                    elif spread_val > 5:
+                        spread_emoji = "🟡"
+                        spread_status = "流動性一般"
+                    else:
+                        spread_emoji = "🟢"
+                        spread_status = "流動性好"
+                    print(f"   {spread_emoji} Spread (價差): {spread_val:.2f} bps ({spread_status})")
+                    
+                    # Depth
+                    depth_val = market_data.get('total_depth', 0)
+                    if depth_val < 3:
+                        depth_emoji = "🔴"
+                        depth_status = "深度不足"
+                    elif depth_val < 5:
+                        depth_emoji = "🟡"
+                        depth_status = "深度一般"
+                    else:
+                        depth_emoji = "🟢"
+                        depth_status = "深度充足"
+                    print(f"   {depth_emoji} Depth (深度): {depth_val:.2f} BTC ({depth_status})")
+                    print()
+                    
+                    # 🤖 模型決策區塊
+                    print("🤖 模型決策:")
+                    print("-" * 80)
+                    
+                    signal = decision['signal']
+                    signal_direction = signal['direction']
+                    
+                    for mode in self.active_modes:
+                        strategy_info = self.strategy_manager.get_strategy_info(mode)
+                        mode_label = strategy_info['emoji']
+                        
+                        position = self.positions[mode]
+                        
+                        # 判斷決策類型
+                        if mode == 'mode_0_baseline':
+                            # Mode 0 強制交易
+                            if signal_direction == 'NEUTRAL':
+                                if obi_val > 0:
+                                    forced_dir = "LONG"
+                                    forced_emoji = "📈"
+                                else:
+                                    forced_dir = "SHORT"
+                                    forced_emoji = "📉"
+                                decision_text = f"強制下單 | {forced_emoji} {forced_dir} (強制)"
+                            else:
+                                direction_emoji = "📈" if signal_direction == "LONG" else "📉"
+                                decision_text = f"直接下單 | {direction_emoji} {signal_direction}"
+                        else:
+                            # Mode 1/2/3 分析結果
+                            can_trade, blocked_reasons = self.apply_risk_control(decision, mode)
+                            
+                            if signal_direction == 'NEUTRAL':
+                                decision_text = "⚖️  NEUTRAL (中立觀望)"
+                            elif can_trade:
+                                direction_emoji = "📈" if signal_direction == "LONG" else "📉"
+                                decision_text = f"✅ {direction_emoji} {signal_direction} (允許)"
+                            else:
+                                direction_emoji = "📈" if signal_direction == "LONG" else "📉"
+                                reasons = ", ".join(blocked_reasons[:2])  # 只顯示前2個原因
+                                decision_text = f"❌ {direction_emoji} {signal_direction} (阻擋: {reasons})"
+                        
+                        # 持倉狀態
+                        if position:
+                            pos_emoji = "📈" if position.direction == "LONG" else "📉"
+                            
+                            # 計算未實現盈虧
+                            if position.direction == "LONG":
+                                unrealized_pnl = ((self.latest_price - position.actual_entry_price) / 
+                                                 position.actual_entry_price) * 100 * position.leverage
+                            else:
+                                unrealized_pnl = ((position.actual_entry_price - self.latest_price) / 
+                                                 position.actual_entry_price) * 100 * position.leverage
+                            
+                            pnl_emoji = "🟢" if unrealized_pnl > 0 else "🔴"
+                            status_text = f"{pos_emoji} 持有 {position.direction} | {pnl_emoji} {unrealized_pnl:+.2f}%"
+                        else:
+                            status_text = "🏦 空倉"
+                        
+                        print(f"   {mode_label}: {decision_text:50} | {status_text}")
+                    
+                    print("-" * 80)
+                    print()
+                    
+                    # 顯示即時交易記錄 (類似圖片格式)
+                    self.print_trade_timeline(decision, timestamp)
+                    
+                    # 檢查平倉
+                    self.check_exits(decision)
+                    
+                    # 創建新訂單
+                    self.create_orders(decision)
+                    
+                    print()
+            
+            await asyncio.sleep(1)  # 每秒檢查一次觸發條件
+        
+        # 強制平倉所有持倉
+        print("⏰ 測試結束，強制平倉...")
+        for mode, position in self.positions.items():
+            if position is not None:
+                position.close(
+                    exit_price=self.latest_price,
+                    reason="TIME_LIMIT",
+                    timestamp=self.orderbook_timestamp
+                )
+                self.positions[mode] = None
+        print()
+    
+    async def websocket_handler(self, duration_minutes: int):
+        """WebSocket 處理器"""
+        await self.connect_websocket()
+        
+        # 初始化訂單簿數據
+        await self.initialize_orderbook()
+        
+        # 啟動決策循環
+        decision_task = asyncio.create_task(self.decision_loop(duration_minutes))
+        
+        # 價格更新計數器
+        price_update_count = 0
+        last_price_display = 0
+        last_position_display = 0
+        
+        # 處理 WebSocket 消息
+        try:
+            async for message in self.ws:
+                msg = json.loads(message)
+                await self.handle_message(msg)
+                
+                # 每 0.3 秒顯示一次價格（更新更快）
+                if self.latest_price and time.time() - last_price_display > 0.3:
+                    price_update_count += 1
+                    spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'][price_update_count % 10]
+                    
+                    # 檢查是否有持倉
+                    has_position = any(pos is not None for pos in self.positions.values())
+                    
+                    if has_position:
+                        # 顯示持倉狀態
+                        display_line = f"\r{spinner} 價格: ${self.latest_price:,.2f} | "
+                        
+                        for mode, pos in self.positions.items():
+                            if pos:
+                                strategy_info = self.strategy_manager.get_strategy_info(mode)
+                                # 使用 emoji 作為簡短標籤
+                                mode_label = strategy_info['emoji']
+                                
+                                # 計算未實現盈虧
+                                if pos.direction == "LONG":
+                                    unrealized_pnl = ((self.latest_price - pos.actual_entry_price) / 
+                                                     pos.actual_entry_price) * 100 * pos.leverage
+                                else:
+                                    unrealized_pnl = ((pos.actual_entry_price - self.latest_price) / 
+                                                     pos.actual_entry_price) * 100 * pos.leverage
+                                
+                                pnl_emoji = "🟢" if unrealized_pnl > 0 else "🔴"
+                                direction = "📈" if pos.direction == "LONG" else "📉"
+                                
+                                display_line += f"{mode_label}:{direction} {unrealized_pnl:+.2f}% | "
+                        
+                        print(display_line.rstrip(" | "), end='', flush=True)
+                    else:
+                        # 只顯示價格
+                        print(f"\r{spinner} 價格波動中... 當前價格: ${self.latest_price:,.2f} | 已收集數據: {price_update_count} 次", end='', flush=True)
+                    
+                    last_price_display = time.time()
+                
+                # 每5秒詳細顯示持倉狀態
+                if has_position and time.time() - last_position_display > 5:
+                    print()  # 換行
+                    timestamp = datetime.fromtimestamp(time.time()).strftime('%H:%M:%S')
+                    
+                    # 收集所有持倉資訊
+                    position_lines = []
+                    for mode, pos in self.positions.items():
+                        if pos:
+                            strategy_info = self.strategy_manager.get_strategy_info(mode)
+                            mode_name = f"{strategy_info['emoji']} {strategy_info['name'][:8]}"
+                            
+                            if pos.direction == "LONG":
+                                unrealized_pnl = ((self.latest_price - pos.actual_entry_price) / 
+                                                 pos.actual_entry_price) * 100 * pos.leverage
+                            else:
+                                unrealized_pnl = ((pos.actual_entry_price - self.latest_price) / 
+                                                 pos.actual_entry_price) * 100 * pos.leverage
+                            
+                            pnl_emoji = "🟢" if unrealized_pnl > 0 else "🔴"
+                            direction_emoji = "📈" if pos.direction == "LONG" else "📉"
+                            holding_time = time.time() - pos.timestamp / 1000
+                            
+                            position_lines.append(
+                                f"{mode_name}: {direction_emoji} {pos.direction} @ ${pos.actual_entry_price:,.2f} "
+                                f"({pos.leverage}x槓桿) | {pnl_emoji} 未實現: {unrealized_pnl:+.2f}% | ⏱️ 持倉: {holding_time:.0f}秒"
+                            )
+                    
+                    # 一行顯示所有持倉
+                    if position_lines:
+                        all_positions = " | ".join(position_lines)
+                        print(f"\n[{timestamp}] 📊 持倉狀態: {all_positions}")
+                    
+                    print()
+                    last_position_display = time.time()
+                
+                if decision_task.done():
+                    print()  # 換行
+                    break
+        finally:
+            await self.ws.close()
+            # 關閉終端日誌檔案
+            if hasattr(self, 'terminal_log_file'):
+                self.terminal_log_file.close()
+    
+    def _log_print(self, *args, **kwargs):
+        """自定義 print 函數，同時輸出到終端和檔案"""
+        # 輸出到終端
+        self.original_print(*args, **kwargs)
+        
+        # 輸出到檔案
+        if hasattr(self, 'terminal_log_file') and self.terminal_log_file:
+            try:
+                # 將參數轉為字串
+                output = ' '.join(str(arg) for arg in args)
+                # 處理 end 參數（預設換行）
+                end = kwargs.get('end', '\n')
+                self.terminal_log_file.write(output + end)
+                self.terminal_log_file.flush()  # 立即寫入
+            except:
+                pass  # 忽略寫入錯誤，不影響主程式
+    
+    def _init_save_file(self):
+        """初始化保存檔案（寫入 metadata）"""
+        # 收集所有策略的槓桿配置
+        leverage_config = {}
+        for mode in self.active_modes:
+            leverage_config[mode] = self.strategy_manager.get_leverage(mode)
+        
+        data = {
+            'metadata': {
+                'timestamp': self.save_timestamp,
+                'initial_capital': self.initial_capital,
+                'decision_interval': self.decision_interval,
+                'total_decisions': 0,
+                'modes': list(self.active_modes),
+                'leverage_config': leverage_config
+            },
+            'orders': {mode: [] for mode in self.active_modes}
+        }
+        
+        with open(self.json_filename, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        print(f"💾 即時保存已啟動:")
+        print(f"   📊 JSON: {self.json_filename}")
+        print(f"   📝 終端日誌: {self.terminal_log_filename}")
+        print(f"   📈 視覺化報告: {self.visual_report_filename}")
+        print()
+    
+    def _append_order_to_file(self, mode: str, order: 'SimulatedOrder'):
+        """每筆交易立即追加到 JSON 檔案"""
+        try:
+            # 讀取現有資料
+            with open(self.json_filename, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # 更新總決策數
+            data['metadata']['total_decisions'] = self.total_decisions
+            
+            # 追加訂單
+            data['orders'][mode].append(order.to_dict())
+            
+            # 寫回檔案
+            with open(self.json_filename, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                
+        except Exception as e:
+            print(f"⚠️ 保存訂單失敗: {e}")
+    
+    def save_order_book(self):
+        """最終保存（更新 metadata）"""
+        # JSON 檔案已經即時保存了每筆交易，這裡只需更新 metadata
+        try:
+            with open(self.json_filename, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # 更新最終 metadata
+            data['metadata']['total_decisions'] = self.total_decisions
+            data['metadata']['end_timestamp'] = datetime.now().strftime('%Y%m%d_%H%M%S')
+            data['metadata']['final_balances'] = self.balances.copy()
+            
+            with open(self.json_filename, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            
+            print(f"💾 最終數據已保存: {self.json_filename}")
+            
+        except Exception as e:
+            print(f"⚠️ 更新最終數據失敗: {e}")
+        
+        # 保存可讀的 TXT log
+        with open(self.log_filename, 'w', encoding='utf-8') as f:
+            f.write("=" * 80 + "\n")
+            f.write("📝 紙面交易 Log - 完整記錄\n")
+            f.write("=" * 80 + "\n")
+            f.write(f"⏰ 測試時間: {self.save_timestamp}\n")
+            f.write(f"💰 初始資金: {self.initial_capital} USDT\n")
+            f.write(f"⚡ 決策頻率: 每 {self.decision_interval} 秒\n")
+            f.write(f"📝 總決策數: {self.total_decisions}\n")
+            f.write("=" * 80 + "\n\n")
+            
+            # 寫入每種模式的詳細記錄
+            for mode in self.orders.keys():
+                orders = self.orders[mode]
+                
+                strategy_info = self.strategy_manager.get_strategy_info(mode)
+                mode_name = f"{strategy_info['emoji']} {strategy_info['name']}"
+                
+                f.write("-" * 80 + "\n")
+                f.write(f"{mode_name}\n")
+                f.write("-" * 80 + "\n\n")
+                
+                if not orders:
+                    f.write("   無任何訂單\n\n")
+                    continue
+                
+                for order in orders:
+                    f.write(f"訂單 #{order.order_id}\n")
+                    f.write(f"   時間: {order.entry_time}\n")
+                    f.write(f"   方向: {order.direction}\n")
+                    f.write(f"   進場價: ${order.actual_entry_price:,.2f}\n")
+                    f.write(f"   槓桿: {order.leverage}x | 倉位: {order.size*100:.0f}%\n")
+                    f.write(f"   信心度: {order.confidence:.3f}\n")
+                    f.write(f"   風險等級: {order.risk_level}\n")
+                    
+                    if order.status == "BLOCKED":
+                        f.write(f"   狀態: ❌ 已阻擋\n")
+                        f.write(f"   原因: {', '.join(order.blocked_reasons)}\n")
+                    elif order.status == "CLOSED":
+                        f.write(f"   出場價: ${order.exit_price:,.2f}\n")
+                        f.write(f"   原因: {order.exit_reason}\n")
+                        f.write(f"   持倉時間: {order.holding_seconds:.0f} 秒\n")
+                        f.write(f"   ROI: {order.roi:+.2f}%\n")
+                        f.write(f"   淨盈虧: ${order.pnl_usdt:+.2f} USDT\n")
+                        f.write(f"   狀態: {'🟢 獲利' if order.roi > 0 else '🔴 虧損'}\n")
+                    else:
+                        f.write(f"   狀態: 📊 持倉中\n")
+                    
+                    f.write("\n")
+                
+                # 統計摘要
+                closed_orders = [o for o in orders if o.status == "CLOSED"]
+                if closed_orders:
+                    total_roi = sum(o.roi for o in closed_orders)
+                    win_orders = [o for o in closed_orders if o.roi > 0]
+                    win_rate = len(win_orders) / len(closed_orders) * 100
+                    
+                    f.write(f"統計摘要:\n")
+                    f.write(f"   總訂單: {len(orders)}\n")
+                    f.write(f"   已平倉: {len(closed_orders)}\n")
+                    f.write(f"   勝率: {win_rate:.1f}%\n")
+                    f.write(f"   總 ROI: {total_roi:+.2f}%\n")
+                    f.write(f"   平均 ROI: {total_roi/len(closed_orders):+.2f}%\n")
+                
+                f.write("\n\n")
+        
+        print(f"📄 可讀 Log 已保存: {self.log_filename}")
+        
+        # 生成視覺化報告
+        self._update_visual_report()
+        
+        return self.json_filename, self.log_filename
+    
+    def _update_visual_report(self):
+        """生成或更新視覺化對比報告"""
+        try:
+            # 計算測試時長
+            elapsed_time = (datetime.now() - self.test_start_time).total_seconds()
+            elapsed_minutes = elapsed_time / 60
+            
+            # 模式列表
+            modes = list(self.orders.keys())
+            
+            # 收集所有已平倉訂單
+            all_orders = {mode: [] for mode in modes}
+            for mode in modes:
+                all_orders[mode] = [o for o in self.orders[mode] if o.status == "CLOSED"]
+            
+            # 計算各模式統計
+            stats = {}
+            for mode in modes:
+                orders = all_orders[mode]
+                balance = self.balances[mode]
+                roi = ((balance - 100) / 100) * 100
+                
+                stats[mode] = {
+                    'balance': balance,
+                    'roi': roi,
+                    'num_trades': len(orders),
+                    'win_rate': self._calculate_win_rate(orders),
+                    'avg_holding': self._calculate_avg_holding(orders),
+                    'leverage': self.strategy_manager.get_leverage(mode)
+                }
+            
+            # 生成報告
+            with open(self.visual_report_filename, 'w', encoding='utf-8') as f:
+                # 標題
+                f.write("=" * 80 + "\n")
+                f.write("📊 紙面交易即時對比報告 (11 策略)\n")
+                f.write("=" * 80 + "\n\n")
+                
+                # 測試時長
+                f.write(f"⏱️  測試時長: {elapsed_minutes:.1f} 分鐘 ({elapsed_time:.0f} 秒)\n")
+                f.write(f"📅 開始時間: {self.test_start_time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"📅 更新時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"📊 總決策次數: {self.total_decisions}\n")
+                f.write(f"🤖 策略數量: {len(modes)} 個\n")
+                f.write("\n")
+                
+                # 資金競賽結果圖表
+                f.write("🏆 即時資金競賽排行榜\n")
+                f.write("=" * 80 + "\n\n")
+                
+                # 簡單的條形圖
+                sorted_modes = sorted(modes, key=lambda m: stats[m]['balance'], reverse=True)
+                max_balance = max(stats[m]['balance'] for m in modes)
+                
+                rank_emojis = ['🥇', '🥈', '🥉'] + [f'{i:2d}.' for i in range(4, len(sorted_modes)+1)]
+                
+                for i, mode in enumerate(sorted_modes):
+                    if i >= len(rank_emojis):
+                        break
+                    medal = rank_emojis[i]
+                    strategy_info = self.strategy_manager.get_strategy_info(mode)
+                    emoji = strategy_info['emoji']
+                    name = strategy_info['name']
+                    balance = stats[mode]['balance']
+                    roi = stats[mode]['roi']
+                    leverage = stats[mode]['leverage']
+                    
+                    # 條形圖
+                    bar_length = int((balance / max_balance) * 50) if max_balance > 0 else 0
+                    bar = "█" * bar_length
+                    
+                    # ROI 顏色標記
+                    roi_color = "🟢" if roi >= 0 else "🔴"
+                    roi_text = f"{roi:+.2f}%"
+                    
+                    f.write(f"{medal} {emoji} {name:<16} | 💰 {balance:>7.2f} USDT | {roi_color} {roi_text:>7} | ⚡ {leverage}x槓桿\n")
+                    f.write(f"   {bar}\n\n")
+                
+                f.write("\n")
+                
+                # 詳細對比表格 (垂直布局)
+                f.write("=" * 80 + "\n")
+                f.write("📈 各策略詳細統計\n")
+                f.write("=" * 80 + "\n\n")
+                
+                # 表頭
+                f.write(f"{'策略':<20} | {'餘額':>10} | {'ROI':>8} | {'槓桿':>4} | {'交易':>4} | {'勝率':>6} | {'持倉':>6} | 狀態\n")
+                f.write("-" * 80 + "\n")
+                
+                # 按排名順序顯示
+                for mode in sorted_modes:
+                    strategy_info = self.strategy_manager.get_strategy_info(mode)
+                    emoji = strategy_info['emoji']
+                    name = strategy_info['name'][:14]  # 截短名稱
+                    
+                    balance = stats[mode]['balance']
+                    roi = stats[mode]['roi']
+                    leverage = stats[mode]['leverage']
+                    num_trades = stats[mode]['num_trades']
+                    win_rate = stats[mode]['win_rate']
+                    avg_holding = stats[mode]['avg_holding']
+                    
+                    # 狀態判斷
+                    if balance < 30:
+                        status = "☠️ 瀕死"
+                    elif balance < 90:
+                        status = "⚠️ 虧損"
+                    elif balance >= 110:
+                        status = "🎉 大賺"
+                    elif balance >= 100:
+                        status = "✅ 獲利"
+                    else:
+                        status = "🟡 小虧"
+                    
+                    # ROI 顏色
+                    roi_str = f"{roi:+.2f}%"
+                    if roi >= 5:
+                        roi_str = f"🟢{roi_str}"
+                    elif roi >= 0:
+                        roi_str = f"🟢{roi_str}"
+                    else:
+                        roi_str = f"🔴{roi_str}"
+                    
+                    win_rate_str = f"{win_rate:.1f}%" if win_rate is not None else "N/A"
+                    avg_hold_str = f"{avg_holding:.0f}秒" if avg_holding is not None else "N/A"
+                    
+                    f.write(f"{emoji} {name:<16} | {balance:>10.2f} | {roi_str:>8} | {leverage:>3}x | {num_trades:>4} | {win_rate_str:>6} | {avg_hold_str:>6} | {status}\n")
+                
+                f.write("\n")
+                
+                # 個別策略詳細信息
+                f.write("=" * 80 + "\n")
+                f.write("📋 個別策略詳細交易記錄\n")
+                f.write("=" * 80 + "\n\n")
+                
+                for mode in modes:
+                    strategy_info = self.strategy_manager.get_strategy_info(mode)
+                    orders = all_orders[mode]
+                    
+                    f.write(f"\n{strategy_info['emoji']} {strategy_info['name']}\n")
+                    f.write("-" * 40 + "\n")
+                    
+                    if not orders:
+                        f.write("   無已平倉交易\n")
+                        continue
+                    
+                    # 最近 5 筆交易
+                    recent_orders = orders[-5:]
+                    for order in recent_orders:
+                        direction_emoji = "📈" if order.direction == "LONG" else "📉"
+                        roi_emoji = "🟢" if order.roi > 0 else "🔴"
+                        
+                        f.write(f"   {order.exit_time.strftime('%H:%M:%S')} {direction_emoji} {order.direction:<5} "
+                               f"@{order.entry_price:.0f}→{order.exit_price:.0f} | "
+                               f"{roi_emoji} {order.roi:+.2f}% ({order.holding_seconds:.0f}秒)\n")
+                
+                f.write("\n")
+                
+                # VPIN 時間軸（最近 20 個值）
+                if self.vpin_history:
+                    f.write("=" * 80 + "\n")
+                    f.write("☠️  VPIN (毒性指標) 時間軸（最近 20 個）\n")
+                    f.write("=" * 80 + "\n\n")
+                    
+                    recent_vpin = list(self.vpin_history)[-20:]
+                    for timestamp, vpin in recent_vpin:
+                        time_str = datetime.fromtimestamp(timestamp / 1000).strftime('%H:%M:%S')
+                        
+                        # VPIN 危險等級
+                        if vpin > 0.9:
+                            danger = "☠️☠️ 極危險！"
+                        elif vpin > 0.8:
+                            danger = "☠️ 高毒性"
+                        elif vpin > 0.7:
+                            danger = "⚠️ 中毒性"
+                        elif vpin > 0.5:
+                            danger = "🟡 低毒性"
+                        else:
+                            danger = "🟢 安全"
+                        
+                        f.write(f"{time_str}  VPIN: {vpin:.3f}  {danger}\n")
+                    
+                    f.write("\n")
+                    
+                    # VPIN 統計
+                    vpin_values = [v for _, v in recent_vpin]
+                    avg_vpin = np.mean(vpin_values)
+                    max_vpin = np.max(vpin_values)
+                    min_vpin = np.min(vpin_values)
+                    
+                    f.write(f"VPIN 統計:\n")
+                    f.write(f"   平均: {avg_vpin:.3f}\n")
+                    f.write(f"   最高: {max_vpin:.3f}\n")
+                    f.write(f"   最低: {min_vpin:.3f}\n")
+                    f.write(f"   閾值: 0.700 (超過則拒絕交易)\n")
+                    f.write("\n")
+                
+                # 手續費影響分析
+                f.write("=" * 80 + "\n")
+                f.write("💰 手續費影響分析\n")
+                f.write("=" * 80 + "\n\n")
+                
+                for mode in modes:
+                    if all_orders[mode]:
+                        total_fees = sum(o.total_fees for o in all_orders[mode])
+                        strategy_info = self.strategy_manager.get_strategy_info(mode)
+                        f.write(f"{strategy_info['emoji']} {strategy_info['name']}:\n")
+                        f.write(f"   總手續費: {total_fees:.2f} USDT\n")
+                        f.write(f"   佔初始本金: {(total_fees/100)*100:.2f}%\n")
+                        f.write(f"   平均每筆: {total_fees/len(all_orders[mode]):.3f} USDT\n")
+                        f.write("\n")
+                
+                # 關鍵學習重點
+                f.write("=" * 80 + "\n")
+                f.write("✅ 關鍵觀察\n")
+                f.write("=" * 80 + "\n\n")
+                
+                # 比較 Mode 0 (無風控) 和其他風控模式
+                mode0_roi = stats.get('mode_0_baseline', {}).get('roi', 0.0)
+                mode1_roi = stats.get('mode_1_vpin_only', {}).get('roi', 0.0)
+                mode2_roi = stats.get('mode_2_liquidity_only', {}).get('roi', 0.0)
+                mode3_roi = stats.get('mode_3_full_control', {}).get('roi', 0.0)
+                
+                if mode0_roi < -10:
+                    f.write(f"1. **風控的重要性** ✅\n")
+                    f.write(f"   - Mode 0 (無風控): {mode0_roi:+.2f}%\n")
+                    f.write(f"   - Mode 1 (VPIN): {mode1_roi:+.2f}%\n")
+                    f.write(f"   - 差距: {mode1_roi - mode0_roi:+.2f}% (風控保護)\n\n")
+                
+                if abs(mode1_roi - mode3_roi) < 2:
+                    f.write(f"2. **VPIN 是關鍵指標** ✅\n")
+                    f.write(f"   - Mode 1 (僅 VPIN): {mode1_roi:+.2f}%\n")
+                    f.write(f"   - Mode 3 (完整風控): {mode3_roi:+.2f}%\n")
+                    f.write(f"   - VPIN 風控效果 ≈ 完整風控\n\n")
+                
+                # 平均 VPIN
+                if self.vpin_history:
+                    vpin_values = [v for _, v in self.vpin_history]
+                    avg_vpin = np.mean(vpin_values)
+                    
+                    if avg_vpin > 0.7:
+                        f.write(f"3. **當前市場環境不適合交易** ⚠️\n")
+                        f.write(f"   - 平均 VPIN: {avg_vpin:.3f} (閾值: 0.7)\n")
+                        f.write(f"   - 建議: 等待 VPIN < 0.7 時段\n\n")
+                
+                f.write("=" * 80 + "\n")
+                f.write("📝 報告說明\n")
+                f.write("=" * 80 + "\n\n")
+                f.write("此報告每次交易結束後自動更新，提供即時績效對比。\n")
+                f.write("可用於監控測試進度和各模式表現差異。\n")
+                f.write("\n")
+            
+            # 只在終端顯示更新提示（不顯示完整內容）
+            if elapsed_time - self.last_report_update > 30:  # 每 30 秒才提示一次
+                print(f"📊 視覺化報告已更新: {self.visual_report_filename}")
+                self.last_report_update = elapsed_time
+                
+        except Exception as e:
+            print(f"⚠️ 生成視覺化報告失敗: {e}")
+    
+    def _calculate_win_rate(self, orders):
+        """計算勝率"""
+        if not orders:
+            return None
+        win_orders = [o for o in orders if o.roi > 0]
+        return (len(win_orders) / len(orders)) * 100
+    
+    def _calculate_avg_holding(self, orders):
+        """計算平均持倉時間"""
+        if not orders:
+            return None
+        return np.mean([o.holding_seconds for o in orders])
+    
+    def print_summary(self):
+        """打印統計摘要"""
+        print("=" * 80)
+        print("📊 紙面交易統計摘要")
+        print("=" * 80)
+        print()
+        
+        for mode in self.orders.keys():
+            orders = self.orders[mode]
+            
+            # 統計
+            total_orders = len(orders)
+            blocked_orders = len([o for o in orders if o.status == "BLOCKED"])
+            closed_orders = len([o for o in orders if o.status == "CLOSED"])
+            
+            if closed_orders > 0:
+                winning_orders = len([o for o in orders if o.status == "CLOSED" and o.roi > 0])
+                win_rate = (winning_orders / closed_orders) * 100
+                
+                total_roi = sum(o.roi for o in orders if o.status == "CLOSED")
+                avg_roi = total_roi / closed_orders
+                
+                best_roi = max(o.roi for o in orders if o.status == "CLOSED")
+                worst_roi = min(o.roi for o in orders if o.status == "CLOSED")
+            else:
+                win_rate = 0
+                avg_roi = 0
+                best_roi = 0
+                worst_roi = 0
+            
+            # 打印
+            print(f"【{mode}】")
+            print(f"  總訂單數: {total_orders}")
+            if total_orders > 0:
+                print(f"  已阻擋: {blocked_orders} ({blocked_orders/total_orders*100:.1f}%)")
+            else:
+                print(f"  已阻擋: 0")
+            print(f"  已平倉: {closed_orders}")
+            if closed_orders > 0:
+                print(f"  勝率: {win_rate:.1f}%")
+                print(f"  平均 ROI: {avg_roi:+.2f}%")
+                print(f"  最佳 ROI: {best_roi:+.2f}%")
+                print(f"  最差 ROI: {worst_roi:+.2f}%")
+            print()
+    
+    async def run(self, duration_minutes: int = 5):
+        """運行紙面交易系統"""
+        print(f"⏰ 運行時長: {duration_minutes} 分鐘")
+        print()
+        
+        await self.websocket_handler(duration_minutes)
+        
+        # 打印摘要
+        self.print_summary()
+        
+        # 保存訂單簿
+        filename = self.save_order_book()
+        
+        return filename
+
+
+async def main():
+    """主函數"""
+    # 參數
+    duration = 5  # 預設 5 分鐘
+    if len(sys.argv) > 1:
+        try:
+            duration = int(sys.argv[1])
+        except ValueError:
+            print("❌ 參數錯誤：請提供分鐘數（整數）")
+            sys.exit(1)
+    
+    # 創建系統（使用開發配置測試 Mode 13）
+    system = PaperTradingSystem(
+        initial_capital=100.0,
+        decision_interval=15,
+        strategy_config_path="config/trading_strategies_dev.json"
+    )
+    
+    # 運行
+    await system.run(duration_minutes=duration)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n")
+        print("=" * 80)
+        print("⚠️  測試已手動中斷")
+        print("=" * 80)
+        print("💾 已完成的交易數據已自動保存")
+        print("📊 可使用分析工具查看結果")
+        print("=" * 80)
+        import sys
+        sys.exit(0)

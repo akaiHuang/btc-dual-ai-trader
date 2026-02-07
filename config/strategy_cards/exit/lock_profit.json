@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "card_id": "lock_profit",
+    "card_type": "exit",
+    "name": "🔐 N%鎖N%",
+    "description": "達到 N% 獲利後，價格每漲 N% 就鎖住 N% (保護獲利)",
+    "best_for": ["所有市場", "保護獲利"],
+    "historical_win_rate": "93.4%",
+    "avg_profit_pct": "+2.5%"
+  },
+  
+  "parameters": {
+    "lock_profit_enabled": true,
+    "lock_start_pct": 1.0,
+    "lock_step_pct": 1.0,
+    "lock_trail_pct": 1.0,
+    
+    "stop_loss_pct": 2.0,
+    "take_profit_pct": 5.0,
+    "max_hold_min": 60.0,
+    
+    "two_phase_exit_enabled": true,
+    "phase1_strict_stop_loss_pct": 1.5,
+    "phase1_target_pct": 1.0,
+    "phase2_trailing_start_pct": 3.0,
+    "phase2_trailing_offset_pct": 1.5
+  },
+  
+  "exit_rules": {
+    "lock_profit_trigger": "獲利 ≥ lock_start_pct 時開始鎖利",
+    "stop_loss": "虧損達 stop_loss_pct 時強制止損",
+    "take_profit": "獲利達 take_profit_pct 時止盈",
+    "timeout": "超過 max_hold_min 分鐘時平倉"
+  }
+}

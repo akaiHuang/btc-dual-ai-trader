@@ -1,0 +1,276 @@
+{
+    "_meta": {
+        "card_id": "random_entry_smart_exit_v4_dydx",
+        "card_name": "🎲 v4 dYdX 對齊版 (50X + 滑點模擬)",
+        "description": "v4 卡片 + 模擬 dYdX 真實交易環境: API 限制、滑點、延遲",
+        "version": "4.1-dydx",
+        "created_at": "2025-12-15",
+        "market_condition": "dYdX 真實環境模擬",
+        "risk_level": "experimental-dydx-realistic",
+        "expected_win_rate": 0.50,
+        "tags": ["experimental", "random-entry", "high-leverage", "50X", "dydx-aligned", "slippage-sim"],
+        "theory": {
+            "hypothesis": "模擬 dYdX 真實環境，測試策略是否仍能獲利",
+            "key_principle": "Paper Trading 對齊 dYdX 限制",
+            "dydx_constraints": {
+                "api_rate_limit": "100 requests / 10 sec (Indexer REST)",
+                "ioc_slippage": "0.1% worst case",
+                "order_latency": "~2 秒 (API cooldown + 網路延遲)",
+                "min_hold_time": "15 秒 (等待成交確認)"
+            },
+            "slippage_simulation": {
+                "entry_slippage_pct": 0.1,
+                "exit_slippage_pct": 0.1,
+                "total_round_trip_cost": "0.2% (進出各 0.1%)",
+                "impact_on_pnl": "每筆交易額外成本 0.2%"
+            },
+            "math": {
+                "原始止盈": "+2.5%",
+                "扣除滑點後": "+2.3% (2.5% - 0.2%)",
+                "原始止損": "-0.75%",
+                "扣除滑點後": "-0.95% (-0.75% - 0.2%)",
+                "新損益平衡勝率": "~55% (比 v4 的 52% 高)"
+            }
+        }
+    },
+
+    "_extends": "base_default",
+    
+    "_notes": {
+        "experiment_purpose": [
+            "測試 Paper Trading 在 dYdX 限制下的表現",
+            "模擬真實 IOC 滑點 0.1%",
+            "模擬 API 延遲和冷卻時間",
+            "驗證策略在真實環境是否仍能獲利"
+        ],
+        "dydx_simulation": {
+            "slippage_entry": "買入時價格 +0.1% (LONG) 或 -0.1% (SHORT)",
+            "slippage_exit": "賣出時價格 -0.1% (LONG) 或 +0.1% (SHORT)",
+            "min_hold_time": "15 秒 (模擬 dYdX 成交確認時間)",
+            "order_cooldown": "2 秒 (避免 429 錯誤)"
+        },
+        "key_changes_from_v4": [
+            "✅ 新增 dydx_simulation 區塊",
+            "✅ 止盈調高補償滑點: 2.5% → 2.7%",
+            "✅ 止損調低補償滑點: 0.75% → 0.55%",
+            "✅ 最小持倉時間: 15 秒 (原 5 秒)",
+            "✅ 交易間隔: 5 秒 (避免頻繁下單)"
+        ]
+    },
+
+    "basic": {
+        "symbol": "BTC/USDT",
+        "leverage": 50,
+        "leverage_min": 45,
+        "leverage_max": 55,
+        "position_size_usdt": 100.0,
+        "_comment": "50X 高槓桿，與 v4 相同"
+    },
+
+    "trading_mode": {
+        "paper_mode": true,
+        "reverse_mode": false,
+        "contextual_mode": false,
+        "strategy_card_enabled": true,
+        "random_entry_mode": true
+    },
+
+    "pre_entry": {
+        "pre_entry_mode": false,
+        "pre_entry_threshold": 0.30,
+        "pre_entry_cancel_threshold": 0.10,
+        "pre_entry_timeout_sec": 10.0,
+        "pre_entry_price_offset": 5.0
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 2.70,
+        "target_profit_min_pct": 1.70,
+        "target_profit_max_pct": 4.20,
+        "stop_loss_pct": 0.55,
+        "stop_loss_min_pct": 0.35,
+        "stop_loss_max_pct": 0.80,
+        "max_hold_minutes": 5.0,
+        "max_hold_min_minutes": 2.0,
+        "max_hold_max_minutes": 10.0,
+        "_comment": "🔧 調整後: 止盈+0.2%(補償滑點), 止損-0.2%(縮小容錯)"
+    },
+
+    "exit_rules": {
+        "three_line_reversal_enabled": false,
+        "_comment": "關閉三線反轉，讓 N%鎖N% 純粹控制出場"
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "use_midpoint_lock": true,
+        "midpoint_ratio": 0.7,
+        "n_lock_n_threshold": 0.75,
+        "n_lock_n_buffer": 0.25,
+        "profit_lock_stages": [
+            [-999.0, 0.0, -0.55],
+            [0.0, 0.50, -0.55],
+            [0.50, 1.00, 0.0],
+            [1.00, 1.50, 0.35],
+            [1.50, 2.00, 0.70],
+            [2.00, 999.0, 1.05]
+        ],
+        "_comment": "🔧 止損階段調整為 -0.55% (補償滑點)"
+    },
+
+    "signal_quality": {
+        "min_probability": 0.00,
+        "min_confidence": 0.00,
+        "signal_confirm_seconds": 0,
+        "min_signal_advantage": 0.00
+    },
+
+    "six_dim_system": {
+        "six_dim_enabled": false,
+        "six_dim_alignment_threshold": 0,
+        "six_dim_min_score_to_trade": 0,
+        "warmup_seconds": 0.0,
+        "require_momentum_confirm": false,
+        "allowed_directions": ["SHORT", "LONG"]
+    },
+
+    "price_confirm": {
+        "price_confirm_enabled": false,
+        "price_confirm_threshold": 0.00
+    },
+
+    "obi_line": {
+        "obi_line_weight": 1,
+        "obi_long_threshold": -0.50,
+        "obi_short_threshold": 0.50,
+        "obi_strong_threshold": 0.80
+    },
+
+    "momentum_line": {
+        "momentum_line_weight": 1,
+        "momentum_long_threshold": -0.50,
+        "momentum_short_threshold": 0.50,
+        "momentum_strong_threshold": 0.80
+    },
+
+    "volume_line": {
+        "volume_line_weight": 1,
+        "volume_long_threshold": 0.50,
+        "volume_short_threshold": 1.50,
+        "volume_strong_threshold": 2.00
+    },
+
+    "analysis_frequency": {
+        "ws_interval_sec": 1.0,
+        "analysis_interval_sec": 1.0,
+        "min_trade_interval_sec": 5.0,
+        "_comment": "🔧 交易間隔 5 秒，避免過度頻繁"
+    },
+
+    "analysis_windows": {
+        "fast_window_seconds": 5,
+        "medium_window_seconds": 30,
+        "slow_window_seconds": 120
+    },
+
+    "fees": {
+        "maker_fee_pct": 0.005,
+        "taker_fee_pct": 0.04,
+        "use_maker_simulation": false,
+        "maker_entry_batches": 1,
+        "maker_entry_duration_sec": 0.0,
+        "maker_price_offset_pct": 0.0,
+        "_comment": "dYdX v4 有手續費；滑點仍在 dydx_simulation 模擬"
+    },
+
+    "risk_control": {
+        "max_daily_trades": 500,
+        "max_daily_loss_usdt": 50.0,
+        "max_concurrent_positions": 1,
+        "max_consecutive_losses": 999,
+        "consecutive_loss_cooldown_min": 0,
+        "obi_consistency_check": false,
+        "consecutive_wins_to_restore": 1
+    },
+
+    "early_exit": {
+        "early_stop_grace_sec": 15.0,
+        "noise_stop_sigma": 2.0,
+        "_comment": "🔧 grace 期間 15 秒 (模擬 dYdX 最小持倉時間)"
+    },
+
+    "whale_detection": {
+        "whale_alert_threshold_usdt": 100000,
+        "whale_emergency_threshold_usdt": 500000,
+        "price_spike_enabled": true,
+        "price_spike_threshold_pct": 0.50
+    },
+
+    "dynamic_profit": {
+        "dynamic_profit_enabled": false,
+        "smart_exit_gross_target": 3.0,
+        "smart_exit_net_target": 2.5,
+        "quick_profit_time_limit": 30.0,
+        "no_momentum_enabled": false,
+        "no_momentum_check_after_min": 5.0,
+        "no_momentum_min_profit": 1.0,
+        "no_momentum_loss_trigger": -0.2
+    },
+
+    "two_phase_exit": {
+        "two_phase_exit_enabled": false,
+        "phase1_fee_threshold_pct": 0.0,
+        "phase1_strict_stop_loss_pct": 0.3,
+        "phase1_target_pct": 1.0,
+        "phase2_trailing_start_pct": 1.0,
+        "phase2_trailing_offset_pct": 0.5,
+        "phase2_max_target_pct": 5.0
+    },
+
+    "gpt_system": {
+        "gpt_optimization_enabled": false,
+        "gpt_trade_filter_enabled": false
+    },
+
+    "chase_protection": {
+        "enabled": false,
+        "same_direction_cooldown_sec": 10,
+        "max_consecutive_same_direction": 10,
+        "price_move_block_pct": 2.0,
+        "score_decay_block_enabled": false,
+        "description": "🎲 關閉追單保護 - 允許頻繁進場"
+    },
+
+    "early_exit_v2": {
+        "enabled": true,
+        "profit_drawdown_threshold": 0.50,
+        "min_profit_for_drawdown_check": 2.7,
+        "stall_time_threshold_sec": 60.0,
+        "quick_reversal_drop_pct": 1.5,
+        "grace_period_sec": 15.0,
+        "six_dim_enabled": false,
+        "opposite_score_increase_threshold": 10.0,
+        "score_gap_narrowing_threshold": 5.0,
+        "description": "🛡️ 保護獲利 - grace 15 秒對齊 dYdX",
+        "_comment": "🔧 grace_period 15 秒 (模擬 dYdX 最小持倉)"
+    },
+
+    "dydx_simulation": {
+        "enabled": true,
+        "entry_slippage_pct": 0.10,
+        "exit_slippage_pct": 0.10,
+        "min_hold_seconds": 15,
+        "order_cooldown_seconds": 2.0,
+        "api_latency_seconds": 0.5,
+        "_comment": "🆕 dYdX 真實環境模擬參數"
+    },
+
+    "random_entry_specific": {
+        "entry_logic": "幾乎隨機進場 (六維分數 >= 2 即可)",
+        "exit_logic": "N%鎖N% + 中間數70%鎖利 + 嚴格止損",
+        "leverage": "50X (同 v4)",
+        "slippage_impact": "進出各 0.1% = 每筆交易成本 0.2%",
+        "adjusted_breakeven": "~55% 勝率 (比 v4 的 52% 高)",
+        "description": "📊 v4 dYdX 對齊版 - 模擬真實環境測試策略穩健性"
+    }
+}

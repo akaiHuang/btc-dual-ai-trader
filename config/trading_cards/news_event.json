@@ -1,0 +1,63 @@
+{
+    "_meta": {
+        "card_id": "news_event",
+        "card_name": "📰 新聞事件卡",
+        "description": "適用於重大新聞或數據公布前後，極度保守或暫停交易",
+        "version": "1.0",
+        "created_at": "2025-01-10",
+        "market_condition": "新聞事件",
+        "risk_level": "very-low",
+        "expected_win_rate": 0.30,
+        "tags": ["news", "event", "caution"]
+    },
+
+    "_extends": "base_default",
+
+    "basic": {
+        "leverage": 10,
+        "leverage_max": 15,
+        "position_size_usdt": 30.0
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 1.00,
+        "target_profit_max_pct": 2.00,
+        "stop_loss_pct": 0.30,
+        "stop_loss_max_pct": 0.50,
+        "early_stop_grace_sec": 10.0,
+        "noise_stop_sigma": 5.0,
+        "max_hold_minutes": 5.0,
+        "max_hold_max_minutes": 15.0
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "n_lock_n_threshold": 0.5,
+        "n_lock_n_buffer": 0.0
+    },
+
+    "signal_quality": {
+        "min_probability": 0.90,
+        "min_confidence": 0.85,
+        "signal_confirm_seconds": 5,
+        "min_signal_advantage": 0.30
+    },
+
+    "timing": {
+        "analysis_interval_sec": 5.0,
+        "min_trade_interval_sec": 10.0
+    },
+
+    "six_dim_system": {
+        "six_dim_alignment_threshold": 10,
+        "six_dim_min_score_to_trade": 11,
+        "warmup_seconds": 120.0
+    },
+
+    "risk_control": {
+        "max_daily_trades": 2,
+        "max_daily_loss_usdt": 50.0,
+        "max_consecutive_losses": 1,
+        "consecutive_loss_cooldown_min": 120
+    }
+}

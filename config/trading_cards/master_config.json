@@ -1,0 +1,84 @@
+{
+    "_meta": {
+        "version": "1.0",
+        "description": "交易卡片系統主配置",
+        "last_updated": "2025-01-10"
+    },
+
+    "active_card": "base_default",
+    
+    "auto_switch": {
+        "enabled": true,
+        "check_interval_sec": 60,
+        "min_confidence": 0.70
+    },
+
+    "market_detection": {
+        "volatility_window_min": 15,
+        "trend_window_min": 60,
+        "whale_detection_enabled": true
+    },
+
+    "card_switch_rules": [
+        {
+            "condition": "volatility > 2.0",
+            "switch_to": "high_volatility",
+            "priority": 10
+        },
+        {
+            "condition": "volatility < 0.3",
+            "switch_to": "low_volatility_calm",
+            "priority": 9
+        },
+        {
+            "condition": "whale_activity > 0.8",
+            "switch_to": "whale_activity",
+            "priority": 8
+        },
+        {
+            "condition": "trend_strength > 0.7 && trend_direction == 'up'",
+            "switch_to": "trending_bull",
+            "priority": 7
+        },
+        {
+            "condition": "trend_strength > 0.7 && trend_direction == 'down'",
+            "switch_to": "trending_bear",
+            "priority": 7
+        },
+        {
+            "condition": "trend_strength < 0.3",
+            "switch_to": "ranging_sideways",
+            "priority": 6
+        },
+        {
+            "condition": "consecutive_losses >= 3",
+            "switch_to": "recovery_mode",
+            "priority": 15
+        },
+        {
+            "condition": "news_event_active",
+            "switch_to": "news_event",
+            "priority": 20
+        }
+    ],
+
+    "available_cards": [
+        "base_default",
+        "trending_bull",
+        "trending_bear",
+        "ranging_sideways",
+        "high_volatility",
+        "low_volatility_calm",
+        "whale_activity",
+        "scalp_aggressive",
+        "conservative_safe",
+        "news_event",
+        "recovery_mode"
+    ],
+
+    "card_categories": {
+        "market_regime": ["trending_bull", "trending_bear", "ranging_sideways", "high_volatility", "low_volatility_calm"],
+        "special_situation": ["whale_activity", "news_event", "recovery_mode"],
+        "trading_style": ["scalp_aggressive", "conservative_safe", "base_default"]
+    }
+}

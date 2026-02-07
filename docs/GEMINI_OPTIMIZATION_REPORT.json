@@ -1,0 +1,277 @@
+{
+  "report_type": "Gemini_Optimization_Analysis",
+  "version": "v10.7",
+  "date": "2025-12-04",
+  "target_system": "Hybrid_Paper_Trading_System",
+  "status": "Implemented",
+  
+  "executive_summary": {
+    "problem": "機器人持續虧損，主要問題為追單(在大跌後才做空)和靜態冷卻無法學習",
+    "solution": "實作 (1) 防追單機制 (2) AI 智能復盤取代靜態冷卻",
+    "expected_impact": "減少 80%+ 的追單虧損，並讓系統能從錯誤中學習調整"
+  },
+
+  "implementations": {
+    "anti_chase_filter": {
+      "feature": "防追單機制 (Anti-Chase Filter)",
+      "status": "Deployed",
+      "files_modified": [
+        "scripts/paper_trading_hybrid_full.py",
+        "scripts/whale_testnet_trader.py",
+        "src/strategy/hybrid_multi_mode.py"
+      ],
+      "description": "在 Paper Trader 與 Hybrid Strategy 中強制加入價格變動檢查。",
+      "metrics": {
+        "indicator": "price_change_1m",
+        "description": "1分鐘內價格變化百分比",
+        "threshold": 0.3,
+        "unit": "%",
+        "configurable": true,
+        "config_path": "config/whale_ctx_strategy.json"
+      },
+      "logic": {
+        "short_block_condition": "price_change_1m < -0.3%",
+        "long_block_condition": "price_change_1m > +0.3%",
+        "action": "強制返回 HOLD，拒絕進場"
+      },
+      "log_signature": "🚫 Anti-Chase: Price down/up X.XX%",
+      "expected_impact": "消除在暴跌後才進場做空的『地板空』行為"
+    },
+    
+    "ai_loss_review": {
+      "feature": "AI 智能復盤機制 (AI-Driven Adaptive Recovery)",
+      "status": "Deployed",
+      "files_modified": [
+        "scripts/paper_trading_hybrid_full.py"
+      ],
+      "description": "將靜態冷卻升級為 AI 復盤調整。虧損後調用 LLM 分析原因並即時調整參數。",
+      "trigger_conditions": [
+        {
+          "condition": "consecutive_losses >= 2",
+          "description": "連續虧損 2 次或以上"
+        },
+        {
+          "condition": "single_loss > 2%",
+          "description": "單筆虧損超過 2%"
+        }
+      ],
+      "workflow": {
+        "step_1": {
+          "name": "Trigger",
+          "action": "虧損時調用 _trigger_ai_loss_review()"
+        },
+        "step_2": {
+          "name": "Data Export",
+          "action": "將進場/出場時的市場數據打包寫入 Bridge JSON"
+        },
+        "step_3": {
+          "name": "Preliminary Diagnosis",
+          "action": "系統自動診斷虧損原因作為 AI 參考"
+        },
+        "step_4": {
+          "name": "AI Analysis",
+          "action": "AI 讀取 loss_review 欄位並回覆參數調整建議"
+        },
+        "step_5": {
+          "name": "Apply Adjustments",
+          "action": "Paper Trader 讀取 AI 的 dynamic_params 調整策略"
+        }
+      },
+      "bridge_schema": {
+        "field": "loss_review",
+        "location": "ai_wolf_bridge.json / ai_dragon_bridge.json",
+        "structure": {
+          "event_type": "LOSS_REVIEW_REQUEST",
+          "timestamp": "ISO8601",
+          "urgency": "HIGH | MEDIUM | LOW",
+          "trade_details": {
+            "direction": "LONG | SHORT",
+            "entry_price": "float",
+            "exit_price": "float",
+            "loss_pct": "float",
+            "loss_usdt": "float",
+            "leverage": "int",
+            "holding_seconds": "int",
+            "exit_reason": "STOP_LOSS | TRAILING_STOP | TIME_LIMIT | REVERSE_SIGNAL",
+            "consecutive_losses": "int"
+          },
+          "entry_context": {
+            "obi_at_entry": "float",
+            "vpin_at_entry": "float",
+            "whale_direction": "LONG | SHORT | null",
+            "whale_dominance": "float",
+            "atr_pct": "float",
+            "price_momentum_1m": "float"
+          },
+          "exit_context": {
+            "obi_at_exit": "float",
+            "vpin_at_exit": "float",
+            "current_whale_direction": "LONG | SHORT | null",
+            "whale_flipped": "boolean"
+          },
+          "preliminary_diagnosis": {
+            "primary_cause": "TOXIC_FLOW | WHALE_TRAP | DEAD_MARKET_CHURN | FALSE_BREAKOUT | WHALE_FLIP | UNKNOWN",
+            "confidence": "float (0-1)",
+            "factors": "array"
+          },
+          "ai_instruction": {
+            "action_required": "ANALYZE_AND_ADJUST",
+            "message": "string",
+            "questions": "array",
+            "response_format": "object"
+          }
+        }
+      }
+    }
+  },
+
+  "key_indicators": {
+    "market_structure": {
+      "indicator": "VPIN",
+      "full_name": "Volume-Synchronized Probability of Informed Trading",
+      "significance": "高 VPIN (>0.75) 下的虧損通常意味著被做市商獵殺",
+      "recommended_action": "暫停 Taker 單，改掛 Maker 或觀望",
+      "threshold_high": 0.75,
+      "threshold_extreme": 0.85
+    },
+    "signal_quality": {
+      "indicator": "Whale Dominance",
+      "full_name": "鯨魚集中度",
+      "significance": "若高集中度 (>0.7) 仍然虧損，代表主力在出貨或誘多",
+      "recommended_action": "考慮反轉策略方向 (Invert Mode)",
+      "threshold_high": 0.7,
+      "threshold_extreme": 0.85
+    },
+    "volatility_state": {
+      "indicator": "ATR",
+      "full_name": "Average True Range",
+      "significance": "若 ATR 極低 (<0.05%) 導致磨損",
+      "recommended_action": "停止趨勢策略，改為網格策略或 M_FISH_MARKET_MAKER",
+      "threshold_dead_market": 0.05,
+      "unit": "%"
+    },
+    "price_momentum": {
+      "indicator": "price_change_1m",
+      "full_name": "1分鐘價格變化",
+      "significance": "追單的核心指標",
+      "recommended_action": "超過閾值時拒絕同方向進場",
+      "threshold_anti_chase": 0.3,
+      "unit": "%"
+    }
+  },
+
+  "diagnostic_categories": {
+    "TOXIC_FLOW": {
+      "description": "被做市商獵殺 (進場時 VPIN > 75%)",
+      "typical_scenario": "進場後價格快速反向，止損被擊中",
+      "recommended_adjustments": {
+        "confidence_threshold_delta": "+10",
+        "vpin_max_entry": 0.7,
+        "prefer_maker": true
+      }
+    },
+    "WHALE_TRAP": {
+      "description": "高鯨魚集中度但虧損，可能是誘騙單",
+      "typical_scenario": "跟隨大單做多/空後，主力反向出貨",
+      "recommended_adjustments": {
+        "whale_dominance_min": 0.85,
+        "require_price_confirmation": true,
+        "consider_invert_mode": true
+      }
+    },
+    "DEAD_MARKET_CHURN": {
+      "description": "死魚盤環境磨損",
+      "typical_scenario": "ATR < 0.05%，價格在窄幅震盪，手續費吃掉利潤",
+      "recommended_adjustments": {
+        "switch_to_range_strategy": true,
+        "increase_atr_floor": 0.06,
+        "enable_maker_mode": true
+      }
+    },
+    "FALSE_BREAKOUT": {
+      "description": "假突破導致快速止損",
+      "typical_scenario": "進場後 30 秒內被止損",
+      "recommended_adjustments": {
+        "entry_delay_seconds": 10,
+        "stop_loss_pct_delta": "+0.5",
+        "require_obi_confirmation": true
+      }
+    },
+    "WHALE_FLIP": {
+      "description": "鯨魚方向在持倉期間反轉",
+      "typical_scenario": "進場時鯨魚做多，持倉中轉為做空",
+      "recommended_adjustments": {
+        "enable_flip_protection": true,
+        "trailing_stop_activation": 3.0,
+        "max_holding_minutes": 15
+      }
+    }
+  },
+
+  "parameter_adjustment_schema": {
+    "confidence_threshold_delta": {
+      "type": "integer",
+      "options": [0, 5, 10, 15],
+      "description": "增加進場信心門檻 (原始 + delta)"
+    },
+    "stop_loss_pct_delta": {
+      "type": "float",
+      "options": [0, 0.5, 1.0],
+      "description": "增加止損比例 (原始 + delta)"
+    },
+    "leverage_multiplier": {
+      "type": "float",
+      "options": [1.0, 0.8, 0.6],
+      "description": "槓桿倍數調整係數"
+    },
+    "cooldown_minutes": {
+      "type": "integer",
+      "options": [0, 5, 15, 30],
+      "description": "額外冷卻時間 (分鐘)"
+    },
+    "strategy_switch": {
+      "type": "string",
+      "options": ["NONE", "RANGE_MODE", "ULTRA_SAFE", "MAKER_ONLY"],
+      "description": "策略模式切換建議"
+    }
+  },
+
+  "testing_checklist": [
+    {
+      "item": "防追單機制測試",
+      "method": "在價格急跌 > 0.3% 後觀察是否拒絕做空",
+      "expected_log": "🚫 Anti-Chase: Price down -X.XX% < -0.3% → Block SHORT",
+      "status": "pending"
+    },
+    {
+      "item": "AI 復盤觸發測試",
+      "method": "連續虧損 2 次後檢查 Bridge JSON 是否有 loss_review 欄位",
+      "expected_log": "📊 [🐺M] 虧損分析已發送至 AI",
+      "status": "pending"
+    },
+    {
+      "item": "AI 參數調整測試",
+      "method": "檢查 AI 是否回覆 recommended_adjustments",
+      "expected_behavior": "dynamic_params 中的 confidence 或 stop_loss 有變化",
+      "status": "pending"
+    }
+  ],
+
+  "next_steps": [
+    {
+      "priority": 1,
+      "task": "更新 AI Prompt",
+      "description": "讓 AI 在看到 loss_review 時優先輸出參數調整建議"
+    },
+    {
+      "priority": 2,
+      "task": "實作參數回寫機制",
+      "description": "Paper Trader 讀取 AI 的 recommended_adjustments 並動態更新設定"
+    },
+    {
+      "priority": 3,
+      "task": "建立復盤歷史資料庫",
+      "description": "儲存所有虧損分析結果，用於未來訓練或微調"
+    }
+  ]
+}

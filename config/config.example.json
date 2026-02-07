@@ -1,0 +1,42 @@
+{
+  "environment": "development",
+  "debug": true,
+  
+  "binance": {
+    "api_key": "YOUR_API_KEY_HERE",
+    "api_secret": "YOUR_API_SECRET_HERE",
+    "testnet": true
+  },
+  
+  "database": {
+    "postgres_host": "localhost",
+    "postgres_port": 5432,
+    "postgres_user": "trading",
+    "postgres_password": "trading",
+    "postgres_db": "trading_db",
+    
+    "influxdb_url": "http://localhost:8086",
+    "influxdb_token": "YOUR_INFLUXDB_TOKEN",
+    "influxdb_org": "trading",
+    "influxdb_bucket": "market_data",
+    
+    "redis_host": "localhost",
+    "redis_port": 6379,
+    "redis_db": 0
+  },
+  
+  "trading": {
+    "symbol": "BTCUSDT",
+    "timeframe": "3m",
+    "leverage": 20,
+    "stake_amount": 100.0,
+    "max_open_trades": 3,
+    
+    "max_daily_drawdown": 0.02,
+    "max_consecutive_losses": 5,
+    "max_position_risk": 0.002,
+    
+    "stop_loss": 0.0025,
+    "take_profit": 0.0045
+  }
+}

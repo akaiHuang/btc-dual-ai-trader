@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "card_id": "ranging",
+    "card_type": "regime",
+    "name": "↔️ 震盪市場",
+    "description": "價格在區間內來回震盪，無明顯趨勢"
+  },
+  
+  "detection_rules": {
+    "conditions": [
+      "abs(price_change_5m) < 0.10%",
+      "abs(price_change_15m) < 0.20%",
+      "abs(obi) < 0.08 (無明顯壓力)",
+      "volume_ratio between 0.9 and 1.1"
+    ],
+    "required_matches": 3,
+    "duration_min_sec": 300
+  },
+  
+  "parameters": {
+    "range_threshold_5m": 0.10,
+    "range_threshold_15m": 0.20,
+    "obi_neutral_range": 0.08,
+    "volume_neutral_range": [0.9, 1.1],
+    "min_range_duration_sec": 300
+  },
+  
+  "recommended_cards": {
+    "entry": "conservative",
+    "exit": "lock_profit",
+    "risk": "low_risk"
+  },
+  
+  "warning": "⚠️ 震盪市場假信號多，建議降低交易頻率"
+}

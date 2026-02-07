@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "card_id": "six_dim_strict",
+    "card_type": "entry",
+    "name": "🎯 六維嚴格模式",
+    "description": "只在六維評分 ≥8/12 且方向一致時進場，過濾假突破",
+    "best_for": ["震盪市場", "假信號多"],
+    "win_rate_target": "65%+",
+    "trade_frequency": "低 (每天 5-10 筆)"
+  },
+  
+  "parameters": {
+    "six_dim_enabled": true,
+    "six_dim_min_score_to_trade": 8,
+    "six_dim_alignment_threshold": 6,
+    
+    "min_probability": 0.70,
+    "min_confidence": 0.60,
+    "signal_confirm_seconds": 3,
+    "min_signal_advantage": 0.20,
+    
+    "price_confirm_enabled": true,
+    "price_confirm_threshold": 0.02,
+    
+    "obi_long_threshold": 0.10,
+    "obi_short_threshold": -0.10,
+    "obi_consistency_check": true,
+    
+    "require_momentum_confirm": true,
+    "momentum_long_threshold": 0.02,
+    "momentum_short_threshold": -0.02,
+    
+    "warmup_seconds": 30.0
+  },
+  
+  "veto_rules": {
+    "_comment": "以下任一條件觸發則拒絕進場",
+    "score_too_low": "六維分數 < 8",
+    "direction_conflict": "OBI/動能/成交量方向衝突",
+    "price_reverse": "價格走勢與進場方向相反",
+    "obi_divergence": "OBI 嚴重背離 (>0.2 或 <-0.2)"
+  }
+}

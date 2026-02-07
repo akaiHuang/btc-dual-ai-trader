@@ -1,0 +1,62 @@
+{
+  "ai_to_wolf": {
+    "command": "WAIT",
+    "direction": "NEUTRAL",
+    "confidence": 50,
+    "leverage": 1,
+    "whale_reversal_price": 0,
+    "take_profit_pct": 10.0,
+    "stop_loss_pct": 5.0,
+    "v2_detected_strategy": "UNKNOWN",
+    "v2_strategy_aligned": false,
+    "reasoning": "Initializing...",
+    "timestamp": null
+  },
+  "wolf_to_ai": {
+    "status": "IDLE",
+    "current_pnl_pct": 0,
+    "position_direction": null,
+    "entry_price": 0,
+    "whale_status": {
+      "current_direction": null,
+      "net_qty_btc": 0,
+      "dominance": 0
+    },
+    "market_microstructure": {
+      "obi": 0,
+      "vpin": 0,
+      "spread_bps": 0
+    },
+    "cascade_alert": {
+      "active": false,
+      "direction": "NONE",
+      "strength": 0
+    }
+  },
+  "feedback_loop": {
+    "total_trades": 0,
+    "total_wins": 0,
+    "total_pnl": 0,
+    "win_rate": 0,
+    "consecutive_losses": 0,
+    "consecutive_wins": 0,
+    "last_trade_result": {}
+  },
+  "v2_strategy_detection": {
+    "detected_strategy": "UNKNOWN",
+    "strategy_probabilities": {},
+    "conflict_state": "UNKNOWN",
+    "predicted_action": "HOLD",
+    "key_signals": [],
+    "risk_warnings": []
+  },
+  "performance": {
+    "total_decisions": 0,
+    "executed_trades": 0,
+    "total_pnl": 0,
+    "avg_confidence": 0,
+    "last_trade_pnl": 0,
+    "balance": 100.0
+  },
+  "last_updated": null
+}

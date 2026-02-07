@@ -1,0 +1,55 @@
+{
+  "card_name": "random_entry_pure_v1",
+  "card_version": "1.0.0",
+  "description": "純淨版：高頻隨機進場 + 只靠止盈止損，無任何保護機制干擾",
+  "author": "GitHub Copilot",
+  "created_at": "2025-12-12",
+  
+  "_design_philosophy": {
+    "核心理念": "純粹測試盈虧比理論，不加任何會干擾的保護機制",
+    "數學": {
+      "止盈": "+3%",
+      "止損": "-0.3%",
+      "盈虧比": "10:1",
+      "損益平衡勝率": "9.1%",
+      "預期勝率": "~27%",
+      "預期每筆": "+0.23%"
+    }
+  },
+  
+  "risk_management": {
+    "position_size_usdt": 100,
+    "leverage": 30
+  },
+  
+  "entry_conditions": {
+    "random_entry_mode": true
+  },
+  
+  "exit_conditions": {
+    "take_profit_pct": 3.0,
+    "stop_loss_pct": 0.3,
+    "max_hold_minutes": 60,
+    "_note": "純止盈止損，沒有其他出場條件"
+  },
+  
+  "protection": {
+    "grace_period_sec": 0,
+    "_grace_note": "無寬限期，立即生效",
+    
+    "enable_breakeven": false,
+    "_breakeven_note": "關閉保本，不要提前出場",
+    
+    "enable_profit_lock": false,
+    "_profit_lock_note": "關閉N%鎖N%，讓利潤跑到止盈"
+  },
+  
+  "chase_protection": {
+    "enabled": false
+  },
+  
+  "daily_limits": {
+    "max_daily_loss_pct": 50,
+    "max_daily_trades": 500
+  }
+}

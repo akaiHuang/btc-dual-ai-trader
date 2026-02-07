@@ -1,0 +1,148 @@
+{
+  "strategies": {
+    "hybrid_m0_ultra_safe": {
+      "enabled": true,
+      "name": "Hybrid M0 - Ultra Safe",
+      "emoji": "🛡️",
+      "description": "超保守Hybrid策略 (0.1~0.5筆/天)",
+      "type": "hybrid_multimode",
+      "mode": "M0_ULTRA_SAFE",
+      "parameters": {
+        "funding_zscore_threshold": 3.0,
+        "signal_score_threshold": 0.7,
+        "rsi_oversold": 25,
+        "rsi_overbought": 75,
+        "volume_spike_threshold": 3.0
+      },
+      "risk": {
+        "leverage": 10,
+        "tp_pct": 0.020,
+        "sl_pct": 0.012,
+        "time_stop_hours": 24,
+        "min_move_threshold": 4.0,
+        "cooldown_minutes": 60,
+        "min_atr_pct": 0.005
+      }
+    },
+    "hybrid_m1_safe": {
+      "enabled": true,
+      "name": "Hybrid M1 - Safe",
+      "emoji": "🟢",
+      "description": "保守Hybrid策略 (0.5~1筆/天)",
+      "type": "hybrid_multimode",
+      "mode": "M1_SAFE",
+      "parameters": {
+        "funding_zscore_threshold": 2.5,
+        "signal_score_threshold": 0.6,
+        "rsi_oversold": 28,
+        "rsi_overbought": 72,
+        "volume_spike_threshold": 2.5
+      },
+      "risk": {
+        "leverage": 10,
+        "tp_pct": 0.018,
+        "sl_pct": 0.011,
+        "time_stop_hours": 18,
+        "min_move_threshold": 3.5,
+        "cooldown_minutes": 45,
+        "min_atr_pct": 0.004
+      }
+    },
+    "hybrid_m2_normal": {
+      "enabled": true,
+      "name": "Hybrid M2 - Normal",
+      "emoji": "🎯",
+      "description": "標準Hybrid策略 (3~10筆/天) - 推薦",
+      "type": "hybrid_multimode",
+      "mode": "M2_NORMAL",
+      "parameters": {
+        "funding_zscore_threshold": 2.0,
+        "signal_score_threshold": 0.5,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "volume_spike_threshold": 2.0
+      },
+      "risk": {
+        "leverage": 15,
+        "tp_pct": 0.015,
+        "sl_pct": 0.010,
+        "time_stop_hours": 12,
+        "min_move_threshold": 2.5,
+        "cooldown_minutes": 30,
+        "min_atr_pct": 0.003
+      }
+    },
+    "hybrid_m3_aggressive": {
+      "enabled": true,
+      "name": "Hybrid M3 - Aggressive",
+      "emoji": "⚡",
+      "description": "積極Hybrid策略 (10~20筆/天)",
+      "type": "hybrid_multimode",
+      "mode": "M3_AGGRESSIVE",
+      "parameters": {
+        "funding_zscore_threshold": 1.5,
+        "signal_score_threshold": 0.4,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_spike_threshold": 1.8
+      },
+      "risk": {
+        "leverage": 20,
+        "tp_pct": 0.010,
+        "sl_pct": 0.008,
+        "time_stop_hours": 8,
+        "min_move_threshold": 2.0,
+        "cooldown_minutes": 15,
+        "min_atr_pct": 0.002
+      }
+    },
+    "hybrid_m4_very_aggressive": {
+      "enabled": true,
+      "name": "Hybrid M4 - Very Aggressive",
+      "emoji": "🔥",
+      "description": "很激進Hybrid策略 (20~30筆/天)",
+      "type": "hybrid_multimode",
+      "mode": "M4_VERY_AGGRESSIVE",
+      "parameters": {
+        "funding_zscore_threshold": 1.2,
+        "signal_score_threshold": 0.35,
+        "rsi_oversold": 40,
+        "rsi_overbought": 60,
+        "volume_spike_threshold": 1.5
+      },
+      "risk": {
+        "leverage": 20,
+        "tp_pct": 0.008,
+        "sl_pct": 0.007,
+        "time_stop_hours": 6,
+        "min_move_threshold": 1.5,
+        "cooldown_minutes": 10,
+        "min_atr_pct": 0.0015
+      }
+    },
+    "hybrid_m5_ultra_aggressive": {
+      "enabled": true,
+      "name": "Hybrid M5 - Ultra Aggressive",
+      "emoji": "🚀",
+      "description": "超激進Hybrid策略 (30+筆/天) - 壓力測試",
+      "type": "hybrid_multimode",
+      "mode": "M5_ULTRA_AGGRESSIVE",
+      "parameters": {
+        "funding_zscore_threshold": 1.0,
+        "signal_score_threshold": 0.3,
+        "rsi_oversold": 45,
+        "rsi_overbought": 55,
+        "volume_spike_threshold": 1.3
+      },
+      "risk": {
+        "leverage": 25,
+        "tp_pct": 0.005,
+        "sl_pct": 0.006,
+        "time_stop_hours": 4,
+        "min_move_threshold": 1.2,
+        "cooldown_minutes": 5,
+        "min_atr_pct": 0.001
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "card_id": "aggressive",
+    "card_type": "entry",
+    "name": "⚡ 激進進場",
+    "description": "較低門檻快速進場，適合趨勢明顯時抓波段",
+    "best_for": ["趨勢市場", "高波動"],
+    "win_rate_target": "50%+",
+    "trade_frequency": "高 (每天 20-50 筆)"
+  },
+  
+  "parameters": {
+    "six_dim_enabled": true,
+    "six_dim_min_score_to_trade": 5,
+    "six_dim_alignment_threshold": 4,
+    
+    "min_probability": 0.50,
+    "min_confidence": 0.40,
+    "signal_confirm_seconds": 2,
+    "min_signal_advantage": 0.10,
+    
+    "price_confirm_enabled": false,
+    "price_confirm_threshold": 0.05,
+    
+    "obi_long_threshold": 0.05,
+    "obi_short_threshold": -0.05,
+    "obi_consistency_check": false,
+    
+    "require_momentum_confirm": false,
+    "momentum_long_threshold": 0.01,
+    "momentum_short_threshold": -0.01,
+    
+    "warmup_seconds": 10.0
+  },
+  
+  "veto_rules": {
+    "score_too_low": "六維分數 < 5",
+    "extreme_obi": "OBI 極端值 (>0.4 或 <-0.4)"
+  }
+}

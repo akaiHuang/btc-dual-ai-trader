@@ -1,0 +1,209 @@
+{
+  "_comment": "動態止盈目標配置 v2.0 - 提高止盈門檻修復盈虧比",
+  "_version": "2.0",
+  "_updated": "2025-12-05",
+  "dynamic_profit_system": {
+    "enabled": true,
+    "description": "根據市場狀況和歷史表現動態調整止盈目標"
+  },
+  "observed_patterns": {
+    "_comment": "v2.0 修正：提高止盈門檻，改善盈虧比從 0.23 到 1.0+",
+    "sweet_spots": {
+      "gross_profit_pct": 10.0,
+      "net_profit_pct": 6.0,
+      "observation_count": 24,
+      "success_rate": 0.5
+    }
+  },
+  "leverage_based_targets": {
+    "_comment": "v2.0: 100X 槓桿下，提高淨利目標到 6% 以匹配止損",
+    "100x": {
+      "conservative": {
+        "gross": 8.0,
+        "net": 4.0,
+        "description": "保守：4%淨利即止盈"
+      },
+      "normal": {
+        "gross": 10.0,
+        "net": 6.0,
+        "description": "正常：6%淨利 (匹配止損)"
+      },
+      "aggressive": {
+        "gross": 14.0,
+        "net": 10.0,
+        "description": "積極：10%淨利目標"
+      }
+    },
+    "75x": {
+      "conservative": {
+        "gross": 6.0,
+        "net": 3.0
+      },
+      "normal": {
+        "gross": 10.0,
+        "net": 6.0
+      },
+      "aggressive": {
+        "gross": 14.0,
+        "net": 10.0
+      }
+    },
+    "50x": {
+      "conservative": {
+        "gross": 8.0,
+        "net": 4.0
+      },
+      "normal": {
+        "gross": 12.0,
+        "net": 8.0
+      },
+      "aggressive": {
+        "gross": 18.0,
+        "net": 12.0
+      }
+    }
+  },
+  "price_based_adjustment": {
+    "_comment": "根據 BTC 價格調整止盈策略",
+    "enabled": true,
+    "rules": [
+      {
+        "price_range": [
+          0,
+          50000
+        ],
+        "adjustment": 1.2,
+        "reason": "低價位波動大，目標可以高一點"
+      },
+      {
+        "price_range": [
+          50000,
+          80000
+        ],
+        "adjustment": 1.0,
+        "reason": "中等價位，使用標準目標"
+      },
+      {
+        "price_range": [
+          80000,
+          100000
+        ],
+        "adjustment": 0.9,
+        "reason": "高價位波動相對小，略降目標"
+      },
+      {
+        "price_range": [
+          100000,
+          999999
+        ],
+        "adjustment": 0.85,
+        "reason": "超高價位，保守止盈"
+      }
+    ]
+  },
+  "volatility_based_adjustment": {
+    "_comment": "根據波動率調整止盈",
+    "enabled": true,
+    "rules": [
+      {
+        "volatility_range": [
+          0,
+          0.5
+        ],
+        "adjustment": 0.7,
+        "reason": "低波動，降低目標避免等太久"
+      },
+      {
+        "volatility_range": [
+          0.5,
+          1.0
+        ],
+        "adjustment": 1.0,
+        "reason": "正常波動"
+      },
+      {
+        "volatility_range": [
+          1.0,
+          2.0
+        ],
+        "adjustment": 1.3,
+        "reason": "高波動，可以設高一點目標"
+      },
+      {
+        "volatility_range": [
+          2.0,
+          999
+        ],
+        "adjustment": 0.8,
+        "reason": "極端波動，快速止盈保護利潤"
+      }
+    ]
+  },
+  "smart_exit_rules": {
+    "_comment": "v2.0 智能出場規則 - 提高門檻修復盈虧比",
+    "enabled": true,
+    "rule_1_quick_profit": {
+      "name": "快速獲利即走",
+      "enabled": true,
+      "condition": "net_profit_pct >= 6.0 AND hold_time < 3min",
+      "action": "CLOSE",
+      "reason": "短時間達標，避免回吐"
+    },
+    "rule_2_gross_net_gap": {
+      "name": "毛淨差距達標",
+      "enabled": true,
+      "condition": "gross_profit_pct >= 10.0 AND net_profit_pct >= 5.0",
+      "action": "CLOSE",
+      "reason": "達到良好盈虧比目標"
+    },
+    "rule_3_diminishing_momentum": {
+      "name": "動能減弱",
+      "enabled": true,
+      "condition": "gross_profit_pct >= 8.0 AND price_momentum_decreasing",
+      "action": "TRAILING_TIGHT",
+      "trailing_pct": 0.5,
+      "reason": "有獲利但動能減弱，緊追蹤"
+    },
+    "rule_4_time_decay": {
+      "name": "時間衰減",
+      "enabled": true,
+      "condition": "hold_time > 10min AND net_profit_pct >= 4.0",
+      "action": "CLOSE",
+      "reason": "持倉過久風險增加，保住利潤"
+    }
+  },
+  "trade_history_analysis": {
+    "_comment": "交易歷史分析配置",
+    "enabled": true,
+    "lookback_trades": 20,
+    "metrics_to_track": [
+      "avg_gross_at_exit",
+      "avg_net_at_exit",
+      "avg_hold_time_winners",
+      "optimal_exit_gross_pct",
+      "optimal_exit_net_pct"
+    ],
+    "auto_adjust": {
+      "enabled": true,
+      "adjust_every_n_trades": 5,
+      "max_adjustment_pct": 20
+    },
+    "last_analysis": "2025-12-27T06:28:07.287386",
+    "sample_size": 5,
+    "avg_gross_at_exit": 2.59,
+    "avg_net_at_exit": 0.05,
+    "avg_hold_time_winners": 3.4
+  },
+  "current_active_target": {
+    "_comment": "目前生效的止盈目標 (會被系統動態更新)",
+    "mode": "normal",
+    "leverage": 100,
+    "gross_target_pct": 0.51,
+    "net_target_pct": 0.26,
+    "price_adjustment": 1.0,
+    "volatility_adjustment": 1.0,
+    "final_gross_target": 6.0,
+    "final_net_target": 3.0,
+    "last_updated": "2025-12-27T06:28:07.287422"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "auto_optimized_20251220_0018",
+  "description": "Auto-generated based on 24h backtest",
+  "version": "1.0",
+  "created_at": "2025-12-20T00:18:46.289052",
+  "allowed_directions": [
+    "SHORT"
+  ],
+  "contextual_mode": true,
+  "six_dim_min_score_to_trade": 6,
+  "min_confidence": 0.3,
+  "stop_loss_pct": 0.5,
+  "take_profit_pct": 1.0,
+  "max_hold_time_sec": 12,
+  "position_size_btc": 0.001,
+  "max_daily_trades": 50,
+  "metadata": {
+    "generated_by": "auto_backtest_module",
+    "based_on_trades": 922,
+    "source_backtest": "2025-12-20T00:18:46.288232",
+    "expected_win_rate": 16.811279826464208
+  }
+}

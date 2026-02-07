@@ -1,0 +1,45 @@
+{
+  "_meta": {
+    "card_id": "momentum_follow",
+    "card_type": "entry",
+    "name": "🚀 動能跟隨",
+    "description": "跟隨價格動能和大單方向，適合趨勢行情",
+    "best_for": ["趨勢市場", "大波動"],
+    "win_rate_target": "55%+",
+    "trade_frequency": "中 (每天 10-20 筆)"
+  },
+  
+  "parameters": {
+    "six_dim_enabled": true,
+    "six_dim_min_score_to_trade": 6,
+    "six_dim_alignment_threshold": 5,
+    
+    "min_probability": 0.55,
+    "min_confidence": 0.50,
+    "signal_confirm_seconds": 2,
+    "min_signal_advantage": 0.15,
+    
+    "price_confirm_enabled": true,
+    "price_confirm_threshold": 0.03,
+    
+    "obi_long_threshold": 0.08,
+    "obi_short_threshold": -0.08,
+    "obi_consistency_check": true,
+    
+    "require_momentum_confirm": true,
+    "momentum_long_threshold": 0.05,
+    "momentum_short_threshold": -0.05,
+    "momentum_strong_threshold": 0.10,
+    
+    "volume_long_threshold": 1.10,
+    "volume_short_threshold": 0.90,
+    
+    "warmup_seconds": 20.0
+  },
+  
+  "veto_rules": {
+    "score_too_low": "六維分數 < 6",
+    "no_momentum": "無明顯動能",
+    "volume_conflict": "成交量方向衝突"
+  }
+}

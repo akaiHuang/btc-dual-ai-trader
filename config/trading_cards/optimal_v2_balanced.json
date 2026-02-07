@@ -1,0 +1,267 @@
+{
+    "_meta": {
+        "card_id": "optimal_v2_balanced",
+        "card_name": "⚖️ 平衡優化卡 v2",
+        "description": "結合 optimal_v1 信號過濾 + v5 高風報比的平衡策略",
+        "version": "2.0",
+        "created_at": "2025-12-19",
+        "market_condition": "震盪市場",
+        "risk_level": "medium-high",
+        "expected_win_rate": 0.58,
+        "tags": [
+            "balanced",
+            "signal-filtered",
+            "high-rr",
+            "optimized"
+        ],
+        "design_theory": {
+            "base": "v5 隨機進場 + 輕度信號過濾",
+            "core_idea": "不限制交易間隔，讓信號系統自然過濾壞機會",
+            "signal_filter": "4分最低門檻 (極寬鬆，只過濾明顯反向信號)",
+            "risk_reward": "2.5:1 (v5 的高風報比)",
+            "expected_frequency": "自然形成 500-1000 次/天",
+            "target_scenario": "勝率比隨機高 5-10%，抵消滑點成本"
+        },
+        "math_expectation": {
+            "paper_mode": {
+                "win_rate": "60%",
+                "avg_win": "+1.5%",
+                "avg_loss": "-0.6%",
+                "expected_per_trade": "+0.66%"
+            },
+            "sync_mode": {
+                "win_rate": "58%",
+                "avg_win": "+1.42%",
+                "avg_loss": "-0.68%",
+                "expected_per_trade": "+0.54%",
+                "100_trades_profit": "$5.38 per 10U"
+            }
+        }
+    },
+    "_extends": "optimal_v1",
+    "_notes": {
+        "v2_vs_v1": "放寬信號門檻，增加風報比",
+        "v2_vs_v5": "增加信號過濾，降低風報比",
+        "key_changes": [
+            "六維門檻: 12分→6分 (增加交易機會)",
+            "止盈: 0.5%→1.5% (提高每筆利潤)",
+            "止損: 0.45%→0.6% (略寬容)",
+            "風報比: 1.1:1→2.5:1 (大幅提升)"
+        ]
+    },
+
+    "basic": {
+        "symbol": "BTC/USDT",
+        "leverage": 50,
+        "leverage_min": 45,
+        "leverage_max": 55,
+        "position_size_usdt": 100.0
+    },
+
+    "trading_mode": {
+        "paper_mode": true,
+        "reverse_mode": false,
+        "contextual_mode": true,
+        "strategy_card_enabled": true,
+        "random_entry_mode": false,
+        "_comment": "非隨機進場，使用信號過濾"
+    },
+
+    "pre_entry": {
+        "pre_entry_mode": false,
+        "pre_entry_threshold": 0.50,
+        "pre_entry_cancel_threshold": 0.30,
+        "pre_entry_timeout_sec": 30.0,
+        "pre_entry_price_offset": 5.0,
+        "_note": "關閉預進場，保持 v5 的快速進場風格"
+    },
+
+    "targets_and_stops": {
+        "_design_note": "v5 風報比 3.3:1 與 v1 風報比 1.1:1 的中間值",
+        "target_profit_pct": 1.5,
+        "target_profit_min_pct": 1.0,
+        "target_profit_max_pct": 2.5,
+        "stop_loss_pct": 0.6,
+        "stop_loss_min_pct": 0.4,
+        "stop_loss_max_pct": 0.8,
+        "max_hold_minutes": 15.0,
+        "max_hold_min_minutes": 5.0,
+        "max_hold_max_minutes": 30.0,
+        "_risk_reward": "2.5:1 (1.5% / 0.6%)"
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "n_lock_n_threshold": 0.5,
+        "n_lock_n_buffer": 0.15,
+        "use_midpoint_lock": true,
+        "midpoint_ratio": 0.7,
+        "profit_lock_stages": [
+            [-999.0, -0.3, -0.6],
+            [-0.3, 0.0, -0.45],
+            [0.0, 0.3, -0.3],
+            [0.3, 0.6, 0.0],
+            [0.6, 1.0, 0.25],
+            [1.0, 1.5, 0.5],
+            [1.5, 999.0, 0.8]
+        ],
+        "_note": "基於 1.5% 止盈優化的分段鎖利"
+    },
+
+    "signal_quality": {
+        "min_probability": 0.0,
+        "min_confidence": 0.0,
+        "signal_confirm_seconds": 0,
+        "min_signal_advantage": 0.0,
+        "_note": "不限制信號品質，讓六維系統負責過濾"
+    },
+
+    "six_dim_system": {
+        "six_dim_enabled": true,
+        "six_dim_alignment_threshold": 2,
+        "six_dim_min_score_to_trade": 4,
+        "six_dim_min_score_long": 5,
+        "six_dim_min_score_short": 4,
+        "six_dim_high_confidence": 8,
+        "min_alignment_seconds": 3,
+        "warmup_seconds": 10.0,
+        "require_momentum_confirm": false,
+        "allowed_directions": ["SHORT", "LONG"],
+        "_design_note": {
+            "v1_settings": "min=12 (太嚴格，交易太少)",
+            "v5_settings": "disabled (純隨機)",
+            "v2_light_filter": "min=4 (只過濾明顯反向，如 LONG分<0 或 SHORT分<0)",
+            "expected_filter_rate": "過濾 ~15-20% 的壞交易",
+            "expected_win_boost": "+5-8% 勝率提升"
+        }
+    },
+
+    "spike_fast_entry": {
+        "spike_fast_entry_enabled": true,
+        "spike_fast_entry_threshold": 0.20,
+        "spike_fast_entry_window_sec": 45,
+        "spike_auto_adjust": false,
+        "_note": "急漲急跌快速進場，略比 v1 敏感 (0.25→0.20)"
+    },
+
+    "price_confirm": {
+        "price_confirm_enabled": true,
+        "price_confirm_threshold": 0.015,
+        "_note": "略寬鬆 (0.02→0.015)"
+    },
+
+    "obi_line": {
+        "obi_line_weight": 2,
+        "obi_long_threshold": 0.06,
+        "obi_short_threshold": -0.04,
+        "obi_strong_threshold": 0.12,
+        "_note": "比 v1 略寬鬆以增加交易機會"
+    },
+
+    "momentum_line": {
+        "momentum_line_weight": 2,
+        "momentum_long_threshold": 0.006,
+        "momentum_short_threshold": -0.006,
+        "momentum_strong_threshold": 0.04,
+        "_note": "比 v1 略敏感"
+    },
+
+    "volume_line": {
+        "volume_line_weight": 2,
+        "volume_long_threshold": 1.03,
+        "volume_short_threshold": 0.98,
+        "volume_strong_threshold": 1.15
+    },
+
+    "analysis_frequency": {
+        "ws_interval_sec": 1.0,
+        "analysis_interval_sec": 5.0,
+        "min_trade_interval_sec": 15.0,
+        "_note": "接近 v5 速度，讓信號系統自然控制頻率而非人為限制"
+    },
+
+    "risk_control": {
+        "max_daily_trades": 30,
+        "max_daily_loss_usdt": 150.0,
+        "max_concurrent_positions": 1,
+        "max_consecutive_losses": 4,
+        "consecutive_loss_cooldown_min": 10,
+        "obi_consistency_check": true,
+        "consecutive_wins_to_restore": 2,
+        "_note": "比 v1 允許更多交易 (10→30/天)"
+    },
+
+    "early_exit": {
+        "enabled": true,
+        "profit_drawdown_threshold": 0.4,
+        "min_profit_for_drawdown_check": 0.4,
+        "stall_time_threshold_sec": 12.0,
+        "quick_reversal_drop_pct": 0.4,
+        "grace_period_sec": 2.0,
+        "six_dim_enabled": true,
+        "opposite_score_increase_threshold": 2.0,
+        "score_gap_narrowing_threshold": 1.5
+    },
+
+    "whale_detection": {
+        "whale_alert_threshold_usdt": 100000,
+        "whale_emergency_threshold_usdt": 500000,
+        "price_spike_enabled": true,
+        "price_spike_threshold_pct": 0.25
+    },
+
+    "dynamic_profit": {
+        "dynamic_profit_enabled": true,
+        "smart_exit_gross_target": 1.2,
+        "smart_exit_net_target": 0.8,
+        "quick_profit_time_limit": 12.0,
+        "no_momentum_enabled": true,
+        "no_momentum_check_after_min": 2.0,
+        "no_momentum_min_profit": 0.4,
+        "no_momentum_loss_trigger": -0.5
+    },
+
+    "two_phase_exit": {
+        "two_phase_exit_enabled": true,
+        "phase1_fee_threshold_pct": 0.0,
+        "phase1_strict_stop_loss_pct": 0.6,
+        "phase1_target_pct": 0.8,
+        "phase2_trailing_start_pct": 1.0,
+        "phase2_trailing_offset_pct": 0.25,
+        "phase2_max_target_pct": 2.0
+    },
+
+    "spread_guard": {
+        "enabled": true,
+        "base_entry": 0.08,
+        "min_entry": 0.04,
+        "max_entry": 0.16,
+        "min_halt": 0.15,
+        "max_halt": 0.4,
+        "oracle_warn": 0.1,
+        "oracle_halt": 0.25,
+        "max_data_age_ms": 5000,
+        "escape_timeout_sec": 5.0
+    },
+
+    "gpt_system": {
+        "gpt_optimization_enabled": false,
+        "gpt_trade_filter_enabled": false
+    },
+
+    "chase_protection": {
+        "enabled": true,
+        "same_direction_cooldown_sec": 45,
+        "max_consecutive_same_direction": 6,
+        "price_move_block_pct": 1.2,
+        "score_decay_block_enabled": true,
+        "strong_signal_bypass": true,
+        "strong_signal_min_score": 8,
+        "_note": "比 v1 寬鬆 (60s→45s, 10分→8分繞過)"
+    },
+
+    "exit_rules": {
+        "three_line_reversal_enabled": false,
+        "_comment": "讓 N%鎖N% 控制出場"
+    }
+}

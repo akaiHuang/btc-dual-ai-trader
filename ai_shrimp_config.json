@@ -1,0 +1,66 @@
+{
+  "strategy_info": {
+    "name": "🦐 Shrimp (GPT) & 🐦 Bird (Kimi)",
+    "version": "1.0.0",
+    "created": "2025-11-26",
+    "description": "優化持倉時間策略，基於數據分析：2-3分鐘持倉勝率最高"
+  },
+  "bridge_sources": {
+    "shrimp": "ai_wolf_bridge.json (GPT-4)",
+    "bird": "ai_dragon_bridge.json (Kimi)"
+  },
+  "parameters": {
+    "shrimp": {
+      "name": "M_SHRIMP",
+      "emoji": "🦐",
+      "ai_source": "GPT-4 (Wolf Bridge)",
+      "bridge_file": "ai_wolf_bridge.json",
+      "min_holding_seconds": 120,
+      "max_holding_seconds": 180,
+      "take_profit_pct": 5.0,
+      "stop_loss_pct": 2.0,
+      "leverage": 50,
+      "min_confidence": 70,
+      "min_confluence": 2,
+      "cooldown_seconds": 180,
+      "disable_trailing_stop": true
+    },
+    "bird": {
+      "name": "M_BIRD",
+      "emoji": "🐦",
+      "ai_source": "Kimi (Dragon Bridge)",
+      "bridge_file": "ai_dragon_bridge.json",
+      "min_holding_seconds": 120,
+      "max_holding_seconds": 180,
+      "take_profit_pct": 5.0,
+      "stop_loss_pct": 2.0,
+      "leverage": 50,
+      "min_confidence": 70,
+      "min_confluence": 2,
+      "cooldown_seconds": 180,
+      "disable_trailing_stop": true
+    }
+  },
+  "key_differences_from_wolf_dragon": {
+    "1_min_holding_time": "強制最小持倉 2 分鐘，不會太早出場",
+    "2_max_holding_time": "最大持倉 3 分鐘，避免趨勢反轉",
+    "3_fixed_tp_sl": "固定 TP=5%, SL=2%（盈虧比 2.5:1）",
+    "4_higher_confidence": "進場門檻 confidence > 70%",
+    "5_confluence_required": "需要 2/3 確認（AI + 鯨魚方向 + 鯨魚集中度）",
+    "6_no_trailing_stop": "禁用追蹤止損，讓利潤跑到目標"
+  },
+  "expected_performance": {
+    "target_roi_per_trade": "5%",
+    "target_win_rate": "70%+",
+    "target_trades_per_day": 20,
+    "target_daily_roi": "100% (20 trades × 5%)",
+    "holding_time_range": "2-3 minutes"
+  },
+  "data_analysis_basis": {
+    "sample_size": 126,
+    "optimal_holding_range": "2.5-3 minutes",
+    "optimal_range_win_rate": "100%",
+    "optimal_range_avg_roi": "+3.22%",
+    "problem_with_wolf_dragon": "71% trades exit in 1-2min with only 24% win rate"
+  }
+}

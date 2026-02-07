@@ -1,0 +1,123 @@
+{
+  "_description": "AI 動態獲利配置 - 50x-100x 高槓桿版 + 死水盤 Maker 模式",
+  "_usage": "50x 起跳；死水盤自動切 Maker 省手續費",
+  "fee_config": {
+    "_comment": "手續費設定",
+    "taker_fee_rate": 0.0005,
+    "maker_fee_rate": 0.0002,
+    "default_order_type": "taker"
+  },
+  "leverage_config": {
+    "_comment": "槓桿設定 - 50x 起跳，最高 100x",
+    "default_leverage": 50,
+    "max_leverage": 100,
+    "min_leverage": 50
+  },
+  "profit_targets": {
+    "_comment": "止盈目標 (ROI%) - 50x Taker 雙邊成本 5%",
+    "_formula": "淨利 = TP - 5% (50x Taker 雙邊成本)",
+    "aggressive": {
+      "_description": "激進模式 (100x) - 雙邊成本 10%，淨利 7%",
+      "min_net_profit_pct": 7.0,
+      "target_tp_pct": 17.0,
+      "target_sl_pct": 6.0,
+      "leverage": 100,
+      "suitable_for": "ATR > 0.3%, 鯨魚活躍, 趨勢明確"
+    },
+    "normal": {
+      "_description": "標準模式 (50x) - 雙邊成本 5%，淨利 7%",
+      "min_net_profit_pct": 7.0,
+      "target_tp_pct": 12.0,
+      "target_sl_pct": 5.0,
+      "leverage": 50,
+      "suitable_for": "ATR 0.1-0.3%, 市場正常"
+    },
+    "conservative": {
+      "_description": "保守模式 (50x) - 低波動，淨利 5%",
+      "min_net_profit_pct": 5.0,
+      "target_tp_pct": 10.0,
+      "target_sl_pct": 4.0,
+      "leverage": 50,
+      "suitable_for": "ATR < 0.1%, 行情不明"
+    },
+    "ultra_safe": {
+      "_description": "超安全模式 (50x) - 連虧後恢復，淨利 3%",
+      "min_net_profit_pct": 3.0,
+      "target_tp_pct": 8.0,
+      "target_sl_pct": 3.5,
+      "leverage": 50,
+      "suitable_for": "連虧 ≥ 3 筆, 需要恢復信心"
+    }
+  },
+  "dead_market_config": {
+    "_comment": "死水盤專用設定 - 用 Maker 省手續費",
+    "enabled": true,
+    "atr_threshold_pct": 0.05,
+    "use_maker": true,
+    "maker_tp_pct": 5.0,
+    "maker_sl_pct": 2.5,
+    "_maker_fee_cost": "0.02% * 2 * 50 = 2% (比 Taker 5% 便宜)",
+    "_maker_net_profit": "5% - 2% = 淨利 3%"
+  },
+  "current_mode": "ultra_safe",
+  "hard_fuse": {
+    "_comment": "硬指標保險絲 - 防止 AI 失誤",
+    "enabled": true,
+    "min_whale_dominance": 0.5,
+    "max_obi_against": 0.5,
+    "max_consecutive_losses": 3,
+    "loss_cooldown_minutes": 30
+  },
+  "auto_adjustment": {
+    "_comment": "自動調整規則",
+    "enabled": true,
+    "volatility_rules": {
+      "high_volatility_threshold": 0.003,
+      "low_volatility_threshold": 0.001,
+      "dead_market_threshold": 0.0005
+    },
+    "performance_rules": {
+      "upgrade_after_wins": 3,
+      "downgrade_after_losses": 2,
+      "reset_to_normal_after_hours": 4
+    },
+    "whale_rules": {
+      "high_dominance_threshold": 0.8,
+      "use_aggressive_when_whale_active": true
+    }
+  },
+  "calculated_breakeven": {
+    "_comment": "各槓桿/模式下的盈虧平衡點",
+    "_50x_taker": "0.05% * 2 * 50 = 5% ROI 成本",
+    "_50x_maker": "0.02% * 2 * 50 = 2% ROI 成本",
+    "_100x_taker": "0.05% * 2 * 100 = 10% ROI 成本",
+    "taker_breakeven_50x": 5.0,
+    "maker_breakeven_50x": 2.0,
+    "taker_breakeven_100x": 10.0
+  },
+  "last_updated": "2025-11-27T11:08:51.527711",
+  "update_history": [
+    {
+      "time": "2025-11-27T11:01:13.461334",
+      "mode": "conservative",
+      "reason": "連虧 2 筆，降級為 conservative"
+    },
+    {
+      "time": "2025-11-27T11:08:51.527714",
+      "mode": "ultra_safe",
+      "reason": "連虧 3 筆，降級為 ultra_safe"
+    }
+  ],
+  "trade_history_analysis": {
+    "last_analysis": "2025-12-26T13:12:24.739535",
+    "sample_size": 1,
+    "avg_gross_at_exit": 2.04,
+    "avg_net_at_exit": 0.16,
+    "avg_hold_time_winners": 4.9
+  },
+  "current_active_target": {
+    "gross_target_pct": 6.0,
+    "net_target_pct": 3.0,
+    "last_updated": "2025-12-26T13:12:24.739574"
+  }
+}

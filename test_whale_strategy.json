@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-11-28T07:45:21.473503+00:00",
+  "update_interval_sec": 3,
+  "symbol": "BTCUSDT",
+  "current_price": 95500,
+  "price_change_1m_pct": 0.15,
+  "price_change_5m_pct": 0.45,
+  "primary_strategy": {
+    "strategy": "吸籌建倉",
+    "strategy_code": "ACCUMULATION",
+    "category": "吸籌派發類",
+    "probability": 0.6875,
+    "confidence": 0.55,
+    "risk_level": "低",
+    "signals": [
+      "📊 訂單簿平衡（隱蔽操作）",
+      "💰 主力淨買入 (WPI=0.35)",
+      "📈 價格穩定（緩漲/橫盤）"
+    ]
+  },
+  "secondary_strategy": null,
+  "strategy_probabilities": {
+    "ACCUMULATION": 0.6875
+  },
+  "entry_signal": {
+    "direction": "做多",
+    "entry_price": 95500,
+    "stop_loss": 94067.5,
+    "take_profit": 97410.0,
+    "position_size_pct": 41.25,
+    "urgency": "WAIT_CONFIRM",
+    "valid_until": "2025-11-28T07:45:21.473258+00:00",
+    "reasoning": "基於 吸籌建倉 策略做多"
+  },
+  "exit_prediction": null,
+  "invalidation": null,
+  "indicators": {
+    "obi": 0.25,
+    "vpin": 0.45,
+    "wpi": 0.35,
+    "funding_rate": 0.001,
+    "oi_change_pct": 2.5,
+    "liquidation_pressure_long": 30,
+    "liquidation_pressure_short": 65
+  },
+  "key_signals": [
+    "📊 訂單簿平衡（隱蔽操作）",
+    "💰 主力淨買入 (WPI=0.35)",
+    "📈 價格穩定（緩漲/橫盤）"
+  ],
+  "risk_warnings": [],
+  "overall_bias": "BULLISH",
+  "overall_confidence": 0.55,
+  "trading_allowed": true
+}

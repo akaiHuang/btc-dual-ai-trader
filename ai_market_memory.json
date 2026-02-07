@@ -1,0 +1,19 @@
+{
+  "regime": {
+    "current": "VOLATILE",
+    "since": "2025-11-28T05:42:47.492089",
+    "volatility_score": 0.015824242771430404,
+    "trend_score": 0.5017395406579135
+  },
+  "strategic_bias": {
+    "direction": "BULLISH",
+    "strength": 0,
+    "since": "2025-11-28T05:22:29.187418",
+    "pending_change": null
+  },
+  "short_term_memory": {
+    "last_vpin_spike": null,
+    "last_obi_flip": null,
+    "recent_regimes": []
+  }
+}

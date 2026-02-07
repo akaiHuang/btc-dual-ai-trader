@@ -1,0 +1,38 @@
+{
+  "_meta": {
+    "card_id": "low_risk",
+    "card_type": "risk",
+    "name": "🛡️ 低風險",
+    "description": "保守風控，適合新手或震盪市場",
+    "best_for": ["震盪市場", "新手", "資金保護"],
+    "risk_level": "低"
+  },
+  
+  "parameters": {
+    "leverage_min": 10,
+    "leverage_max": 25,
+    "leverage_default": 15,
+    
+    "position_size_usdt": 50,
+    "max_daily_trades": 20,
+    "max_concurrent_positions": 1,
+    
+    "max_daily_loss_pct": 8.0,
+    "max_consecutive_losses": 2,
+    "consecutive_loss_cooldown_min": 45,
+    
+    "consecutive_wins_to_restore": 3,
+    
+    "volatility_leverage_adjust": true,
+    "volatility_high_threshold": 0.2,
+    "volatility_low_threshold": 0.05,
+    "leverage_reduce_on_high_vol": 0.5,
+    "leverage_increase_on_low_vol": 1.0
+  },
+  
+  "safety_rules": {
+    "max_loss_per_trade": "每筆最大虧損限制在 1%",
+    "daily_limit": "日虧損達 8% 停止交易",
+    "recovery": "連續獲利 3 次才恢復正常"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "card_id": "trending",
+    "card_type": "regime",
+    "name": "📈 趨勢市場",
+    "description": "識別明顯的上升或下降趨勢"
+  },
+  
+  "detection_rules": {
+    "trending_up": {
+      "conditions": [
+        "price_change_5m > 0.15%",
+        "price_change_15m > 0.30%",
+        "obi > 0.10 (買壓)",
+        "volume_ratio > 1.2 (大單偏買)"
+      ],
+      "required_matches": 3
+    },
+    "trending_down": {
+      "conditions": [
+        "price_change_5m < -0.15%",
+        "price_change_15m < -0.30%",
+        "obi < -0.10 (賣壓)",
+        "volume_ratio < 0.8 (大單偏賣)"
+      ],
+      "required_matches": 3
+    }
+  },
+  
+  "parameters": {
+    "trend_threshold_5m": 0.15,
+    "trend_threshold_15m": 0.30,
+    "obi_threshold": 0.10,
+    "volume_ratio_threshold": 1.2,
+    "min_confirmation_seconds": 60
+  },
+  
+  "recommended_cards": {
+    "entry": "momentum_follow",
+    "exit": "hold_winner",
+    "risk": "high_leverage"
+  }
+}

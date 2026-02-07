@@ -1,0 +1,294 @@
+{
+    "_meta": {
+        "card_id": "random_entry_smart_exit_v4",
+        "card_name": "🎲 隨機進場高頻出場卡 v4 (50X)",
+        "description": "實驗卡片 v4 - 高槓桿版：50X + 等比例止盈止損 + 中間數鎖利",
+        "version": "4.0",
+        "created_at": "2025-12-12",
+        "market_condition": "盤整/小波動市場",
+        "risk_level": "experimental-high-leverage",
+        "expected_win_rate": 0.50,
+        "tags": ["experimental", "random-entry", "high-frequency", "high-leverage", "50X"],
+        "theory": {
+            "hypothesis": "v4: 50X高槓桿，等比例放大盈虧",
+            "key_principle": "見好就收，高槓桿放大收益",
+            "math": {
+                "設計參數": {
+                    "槓桿": "50X (v3的5倍)",
+                    "止盈": "+2.5% (v3的5倍)",
+                    "止損": "-0.75% (v3的5倍)",
+                    "價格空間": "0.015% (與v3相同)",
+                    "損益平衡勝率": "52% (與v3相同)"
+                },
+                "中間數鎖利": {
+                    "邏輯": "最高獲利 × 70% = 出場線",
+                    "範例": "最高 +1.5% → 跌破 +1.05% 就平倉"
+                }
+            }
+        }
+    },
+
+    "_extends": "base_default",
+    
+    "_notes": {
+        "experiment_purpose": [
+            "測試高槓桿版本",
+            "驗證等比例放大效果",
+            "同樣價格移動，更高盈虧",
+            "風險更大但收益也更大"
+        ],
+        "key_design": [
+            "槓桿 50X (v3 的 5 倍)",
+            "止損 -0.75% (v3 的 5 倍)",
+            "止盈 +2.5% (v3 的 5 倍)",
+            "價格空間相同 (0.015%)",
+            "中間數鎖利 70%"
+        ],
+        "vs_v3": {
+            "v3": "10X, 止損0.15%, 止盈0.5%",
+            "v4": "50X, 止損0.75%, 止盈2.5%",
+            "相同": "價格移動空間, 損益平衡勝率"
+        }
+    },
+
+    "basic": {
+        "symbol": "BTC/USDT",
+        "leverage": 50,
+        "leverage_min": 45,
+        "leverage_max": 55,
+        "position_size_usdt": 100.0,
+        "_comment": "50X高槓桿，等比例放大盈虧"
+    },
+
+    "trading_mode": {
+        "paper_mode": true,
+        "reverse_mode": false,
+        "contextual_mode": false,
+        "strategy_card_enabled": true,
+        "random_entry_mode": true,
+        "_comment": "隨機進場模式"
+    },
+
+    "dydx_sync": {
+        "dydx_ws_confirm_timeout_sec": 1.5,
+        "dydx_desync_close_sec": 45.0,
+        "dydx_sl_wait_timeout_sec": 18.0,
+        "dydx_sl_sync_grace_sec": 4.0,
+        "dydx_sl_missing_grace_sec": 6.0,
+        "dydx_sl_missing_min_interval_sec": 12.0,
+        "dydx_paper_master": true,
+        "dydx_resync_open_cooldown_sec": 8.0,
+        "dydx_maker_timeout_sec": 0.8,
+        "max_dydx_spread_pct": 0.02,
+        "max_dydx_jump_1s_pct": 0.05,
+        "_comment": "嚴格限制價差與跳價，避免進場即虧損"
+    },
+
+    "pre_entry": {
+        "pre_entry_mode": false,
+        "pre_entry_threshold": 0.30,
+        "pre_entry_cancel_threshold": 0.10,
+        "pre_entry_timeout_sec": 10.0,
+        "pre_entry_price_offset": 5.0,
+        "pre_take_profit_pct": 1.2,
+        "pre_stop_loss_pct": 0.8
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 2.0,
+        "target_profit_min_pct": 1.20,
+        "target_profit_max_pct": 3.0,
+        "stop_loss_pct": 0.8,
+        "stop_loss_min_pct": 0.60,
+        "stop_loss_max_pct": 1.20,
+        "max_hold_minutes": 10.0,
+        "max_hold_min_minutes": 5.0,
+        "max_hold_max_minutes": 20.0,
+        "_comment": "止損設為 0.8% ROE (10X = 0.08% 價格)，避開噪音"
+    },
+
+    "exit_rules": {
+        "three_line_reversal_enabled": false,
+        "_comment": "關閉三線反轉，讓 N%鎖N% 純粹控制出場"
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": false,
+        "use_midpoint_lock": true,
+        "midpoint_ratio": 0.5,
+        "lock_start_pct": 0.5,
+        "min_lock_pct": 0.2,
+        "tp_update_on_phase_change": true,
+        "tp_update_on_integer_cross": true,
+        "tp_update_integer_step": 1.0,
+        "tp_update_integer_offset": 0.0,
+        "tp_update_cooldown_sec": 45.0,
+        "tp_update_min_price_diff_pct": 0.2,
+        "tp_update_policy": "extend",
+        "sl_update_cooldown_sec": 2.5,
+        "sl_update_min_diff_pct": 0.02,
+        "n_lock_n_threshold": 2.0,
+        "n_lock_n_buffer": 1.0,
+        "profit_lock_stages": [
+            [-999.0, 0.0, -0.8],
+            [0.0, 0.1, -0.5],
+            [0.1, 1.0, 0.1],
+            [1.0, 1.1, 0.1],
+            [1.1, 2.0, 1.0],
+            [2.0, 2.1, 1.0],
+            [2.1, 3.0, 2.0],
+            [3.0, 3.1, 2.0],
+            [3.1, 4.0, 3.0],
+            [4.0, 4.1, 3.0],
+            [4.1, 5.0, 4.0],
+            [5.0, 5.1, 4.0],
+            [5.1, 999.0, 5.0]
+        ],
+        "_comment": "中間數優先 + M%M 階梯：0.1~0.9鎖+0.1%、1.1~1.9鎖1%、2.1~2.9鎖2%，依此類推"
+    },
+
+    "signal_quality": {
+        "min_probability": 0.00,
+        "min_confidence": 0.00,
+        "signal_confirm_seconds": 0,
+        "min_signal_advantage": 0.00
+    },
+
+    "six_dim_system": {
+        "six_dim_enabled": false,
+        "six_dim_alignment_threshold": 0,
+        "six_dim_min_score_to_trade": 0,
+        "warmup_seconds": 0.0,
+        "require_momentum_confirm": false,
+        "allowed_directions": ["SHORT", "LONG"]
+    },
+
+    "price_confirm": {
+        "price_confirm_enabled": true,
+        "price_confirm_threshold": 0.01,
+        "momentum_exhaustion_threshold": 0.12,
+        "_comment": "啟用價格確認與動能竭盡檢查，避免在極端波動中進場"
+    },
+
+    "obi_line": {
+        "obi_line_weight": 1,
+        "obi_long_threshold": -0.50,
+        "obi_short_threshold": 0.50,
+        "obi_strong_threshold": 0.80
+    },
+
+    "momentum_line": {
+        "momentum_line_weight": 1,
+        "momentum_long_threshold": -0.50,
+        "momentum_short_threshold": 0.50,
+        "momentum_strong_threshold": 0.80
+    },
+
+    "volume_line": {
+        "volume_line_weight": 1,
+        "volume_long_threshold": 0.50,
+        "volume_short_threshold": 1.50,
+        "volume_strong_threshold": 2.00
+    },
+
+    "analysis_frequency": {
+        "ws_interval_sec": 1.0,
+        "analysis_interval_sec": 1.0,
+        "min_trade_interval_sec": 5.0
+    },
+
+    "analysis_windows": {
+        "fast_window_seconds": 5,
+        "medium_window_seconds": 30,
+        "slow_window_seconds": 120
+    },
+
+    "fees": {
+        "maker_fee_pct": 0.0,
+        "taker_fee_pct": 0.0,
+        "use_maker_simulation": false,
+        "maker_entry_batches": 1,
+        "maker_entry_duration_sec": 0.0,
+        "maker_price_offset_pct": 0.0,
+        "_comment": "dYdX 零手續費，設為 0 避免止損計算錯誤"
+    },
+
+    "risk_control": {
+        "max_daily_trades": 500,
+        "max_daily_loss_usdt": 50.0,
+        "max_concurrent_positions": 1,
+        "max_consecutive_losses": 999,
+        "consecutive_loss_cooldown_min": 0,
+        "obi_consistency_check": false,
+        "consecutive_wins_to_restore": 1
+    },
+
+    "early_exit": {
+        "early_stop_grace_sec": 2.0,
+        "noise_stop_sigma": 1.5
+    },
+
+    "whale_detection": {
+        "whale_alert_threshold_usdt": 100000,
+        "whale_emergency_threshold_usdt": 500000,
+        "price_spike_enabled": true,
+        "price_spike_threshold_pct": 0.50
+    },
+
+    "dynamic_profit": {
+        "dynamic_profit_enabled": false,
+        "smart_exit_gross_target": 3.0,
+        "smart_exit_net_target": 2.5,
+        "quick_profit_time_limit": 30.0,
+        "no_momentum_enabled": false,
+        "no_momentum_check_after_min": 5.0,
+        "no_momentum_min_profit": 1.0,
+        "no_momentum_loss_trigger": -0.2
+    },
+
+    "two_phase_exit": {
+        "two_phase_exit_enabled": false,
+        "phase1_fee_threshold_pct": 0.0,
+        "phase1_strict_stop_loss_pct": 0.3,
+        "phase1_target_pct": 1.0,
+        "phase2_trailing_start_pct": 1.0,
+        "phase2_trailing_offset_pct": 0.5,
+        "phase2_max_target_pct": 5.0
+    },
+
+    "gpt_system": {
+        "gpt_optimization_enabled": false,
+        "gpt_trade_filter_enabled": false
+    },
+
+    "chase_protection": {
+        "enabled": false,
+        "same_direction_cooldown_sec": 10,
+        "max_consecutive_same_direction": 10,
+        "price_move_block_pct": 2.0,
+        "score_decay_block_enabled": false,
+        "description": "🎲 關閉追單保護 - 允許頻繁進場"
+    },
+
+    "early_exit_v2": {
+        "enabled": true,
+        "profit_drawdown_threshold": 0.40,
+        "min_profit_for_drawdown_check": 0.5,
+        "stall_time_threshold_sec": 45.0,
+        "quick_reversal_drop_pct": 0.3,
+        "grace_period_sec": 3.0,
+        "six_dim_enabled": false,
+        "opposite_score_increase_threshold": 10.0,
+        "score_gap_narrowing_threshold": 5.0,
+        "description": "🛡️ 保護獲利 - 獲利回撤40%時考慮出場 (適配 10X)"
+    },
+
+    "random_entry_specific": {
+        "entry_logic": "幾乎隨機進場 (六維分數 >= 2 即可)",
+        "exit_logic": "N%鎖N% + 中間數70%鎖利 + 嚴格止損",
+        "leverage": "50X (v3的5倍)",
+        "risk_reward_ratio": "相同價格空間，放大5倍盈虧",
+        "breakeven_win_rate": "52% (與v3相同)",
+        "description": "📊 v4高槓桿版 - 同樣價格移動，5倍盈虧"
+    }
+}

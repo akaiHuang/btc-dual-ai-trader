@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "card_id": "quick_scalp",
+    "card_type": "exit",
+    "name": "💰 快速止盈",
+    "description": "小賺就跑，適合震盪市場或剝頭皮策略",
+    "best_for": ["震盪市場", "剝頭皮"],
+    "historical_win_rate": "70%",
+    "avg_profit_pct": "+0.8%"
+  },
+  
+  "parameters": {
+    "lock_profit_enabled": false,
+    "trailing_stop_enabled": false,
+    
+    "stop_loss_pct": 1.0,
+    "take_profit_pct": 1.5,
+    "max_hold_min": 15.0,
+    
+    "quick_profit_enabled": true,
+    "quick_profit_target_pct": 0.5,
+    "quick_profit_time_sec": 60,
+    
+    "two_phase_exit_enabled": false,
+    "phase1_strict_stop_loss_pct": 0.8,
+    "phase1_target_pct": 0.5
+  },
+  
+  "exit_rules": {
+    "quick_profit": "60秒內獲利 ≥ 0.5% 立即止盈",
+    "stop_loss": "虧損達 1.0% 時強制止損",
+    "take_profit": "獲利達 1.5% 時止盈",
+    "timeout": "超過 15 分鐘時平倉"
+  }
+}

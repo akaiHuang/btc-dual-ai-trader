@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "card_id": "volatile",
+    "card_type": "regime",
+    "name": "⚡ 高波動市場",
+    "description": "價格劇烈波動，機會大風險也大"
+  },
+  
+  "detection_rules": {
+    "conditions": [
+      "volatility_5m > 0.30%",
+      "volatility_15m > 0.50%",
+      "price_spike_detected",
+      "whale_activity_detected"
+    ],
+    "required_matches": 2
+  },
+  
+  "parameters": {
+    "volatility_threshold_5m": 0.30,
+    "volatility_threshold_15m": 0.50,
+    "price_spike_threshold": 0.25,
+    "whale_trade_threshold_usdt": 50000
+  },
+  
+  "recommended_cards": {
+    "entry": "six_dim_strict",
+    "exit": "trailing_stop",
+    "risk": "low_risk"
+  },
+  
+  "warning": "⚠️ 高波動市場止損要寬，否則容易被洗掉"
+}

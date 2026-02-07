@@ -1,0 +1,238 @@
+{
+  "strategies": {
+    "mode_0_baseline": {
+      "name": "無風控基準",
+      "emoji": "🤖❌",
+      "description": "強制交易所有信號，用於對比",
+      "leverage": 5,
+      "position_size": 0.3,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": false,
+        "liquidity_check": false,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_0_reverse": {
+      "name": "反向交易",
+      "emoji": "❌🤖",
+      "description": "逆向操作：做多變做空，持有變平倉",
+      "leverage": 5,
+      "position_size": 0.3,
+      "enabled": true,
+      "reverse_trading": true,
+      "risk_control": {
+        "vpin_check": false,
+        "liquidity_check": false,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_1_vpin_only": {
+      "name": "VPIN風控",
+      "emoji": "🤖🟡",
+      "description": "只檢查市場毒性指標",
+      "leverage": 3,
+      "position_size": 0.3,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.7,
+        "liquidity_check": false,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_2_liquidity_only": {
+      "name": "流動性風控",
+      "emoji": "🤖🔵",
+      "description": "只檢查價差和深度",
+      "leverage": 3,
+      "position_size": 0.3,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": false,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_3_full_control": {
+      "name": "完整風控",
+      "emoji": "🤖🟢",
+      "description": "VPIN + 流動性雙重檢查",
+      "leverage": 5,
+      "position_size": 0.3,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.7,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "trend_check": false,
+        "stop_loss": 0.05,
+        "take_profit": 0.08
+      }
+    },
+    "mode_4_trend_following": {
+      "name": "趨勢跟隨",
+      "emoji": "🤖🟣",
+      "description": "跟隨強勢趨勢，確認後進場",
+      "leverage": 4,
+      "position_size": 0.4,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.7,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "trend_check": true,
+        "obi_velocity_threshold": 0.5,
+        "signed_volume_threshold": 3.0,
+        "stop_loss": 0.04,
+        "take_profit": 0.10
+      }
+    },
+    "mode_5_mean_reversion": {
+      "name": "均值回歸",
+      "emoji": "🤖🟠",
+      "description": "反向交易極端失衡",
+      "leverage": 2,
+      "position_size": 0.5,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.6,
+        "liquidity_check": true,
+        "spread_threshold": 8,
+        "depth_threshold": 5,
+        "reverse_trade": true,
+        "obi_extreme_threshold": 0.8,
+        "stop_loss": 0.06,
+        "take_profit": 0.06
+      }
+    },
+    "mode_6_dynamic_stop": {
+      "name": "動態止損",
+      "emoji": "🤖⚪",
+      "description": "根據波動率調整止損",
+      "leverage": 3,
+      "position_size": 0.35,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.7,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "dynamic_stop": true,
+        "volatility_multiplier": 2.0,
+        "min_stop_loss": 0.03,
+        "max_stop_loss": 0.10,
+        "take_profit": 0.08
+      }
+    },
+    "mode_7_hybrid": {
+      "name": "混合策略",
+      "emoji": "🤖🔴",
+      "description": "根據市場狀態動態切換策略",
+      "leverage": 4,
+      "position_size": 0.35,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.65,
+        "liquidity_check": true,
+        "spread_threshold": 12,
+        "depth_threshold": 4,
+        "trend_check": true,
+        "hybrid_mode": true,
+        "confidence_threshold": 0.6,
+        "stop_loss": 0.045,
+        "take_profit": 0.09
+      }
+    },
+    "mode_8_technical_loose": {
+      "name": "技術指標寬鬆",
+      "emoji": "🤖📊",
+      "description": "技術指標輔助（門檻 1 票，容易通過）",
+      "leverage": 3,
+      "position_size": 0.4,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.75,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "technical_indicators": true,
+        "min_indicator_agreement": 1,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "stochrsi_oversold": 25,
+        "stochrsi_overbought": 75,
+        "stop_loss": 0.04,
+        "take_profit": 0.10
+      }
+    },
+    "mode_9_technical_strict": {
+      "name": "技術指標嚴格",
+      "emoji": "🤖📈",
+      "description": "技術指標嚴格（門檻 3 票，需多數同意）",
+      "leverage": 2,
+      "position_size": 0.5,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.7,
+        "liquidity_check": true,
+        "spread_threshold": 8,
+        "depth_threshold": 4,
+        "technical_indicators": true,
+        "min_indicator_agreement": 3,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "stochrsi_oversold": 20,
+        "stochrsi_overbought": 80,
+        "stop_loss": 0.05,
+        "take_profit": 0.12
+      }
+    },
+    "mode_10_technical_off": {
+      "name": "技術指標關閉",
+      "emoji": "🤖📉",
+      "description": "關閉技術指標（純 VPIN + 流動性風控）",
+      "leverage": 4,
+      "position_size": 0.35,
+      "enabled": true,
+      "risk_control": {
+        "vpin_check": true,
+        "vpin_threshold": 0.75,
+        "liquidity_check": true,
+        "spread_threshold": 10,
+        "depth_threshold": 3,
+        "technical_indicators": false,
+        "stop_loss": 0.045,
+        "take_profit": 0.09
+      }
+    }
+  },
+  "global_settings": {
+    "fees": {
+      "taker_fee": 0.0005,
+      "maker_fee": 0.0002,
+      "funding_rate_hourly": 0.00003
+    },
+    "slippage_bps": 2,
+    "initial_capital": 100
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-01-06T01:36:15.162813+00:00",
+  "update_interval_sec": 3,
+  "symbol": "BTCUSDT",
+  "current_price": 94001.0,
+  "price_change_1m_pct": -0.0138,
+  "price_change_5m_pct": -0.0138,
+  "primary_strategy": null,
+  "secondary_strategy": null,
+  "strategy_probabilities": {},
+  "entry_signal": null,
+  "exit_prediction": null,
+  "invalidation": null,
+  "indicators": {
+    "obi": 0.4307918280144211,
+    "vpin": 0,
+    "wpi": 0.0,
+    "funding_rate": -0.003942142857142857,
+    "oi_change_pct": 0,
+    "liquidation_pressure_long": 50,
+    "liquidation_pressure_short": 50
+  },
+  "key_signals": [],
+  "risk_warnings": [],
+  "overall_bias": "NEUTRAL",
+  "overall_confidence": 0.3,
+  "trading_allowed": true
+}

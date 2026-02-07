@@ -1,0 +1,58 @@
+{
+    "_meta": {
+        "card_id": "recovery_mode",
+        "card_name": "🔧 虧損恢復卡",
+        "description": "連續虧損後使用，極度保守，小倉位恢復信心",
+        "version": "1.0",
+        "created_at": "2025-01-10",
+        "market_condition": "虧損後",
+        "risk_level": "very-low",
+        "expected_win_rate": 0.65,
+        "tags": ["recovery", "drawdown", "rebuild"]
+    },
+
+    "_extends": "base_default",
+
+    "basic": {
+        "leverage": 15,
+        "leverage_max": 20,
+        "position_size_usdt": 30.0
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 0.30,
+        "target_profit_max_pct": 0.50,
+        "stop_loss_pct": 0.10,
+        "stop_loss_max_pct": 0.15,
+        "max_hold_minutes": 15.0
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "n_lock_n_threshold": 0.3,
+        "n_lock_n_buffer": 0.0
+    },
+
+    "signal_quality": {
+        "min_probability": 0.80,
+        "min_confidence": 0.70,
+        "signal_confirm_seconds": 3,
+        "min_signal_advantage": 0.20
+    },
+
+    "six_dim_system": {
+        "six_dim_alignment_threshold": 8,
+        "six_dim_min_score_to_trade": 9
+    },
+
+    "risk_control": {
+        "max_daily_trades": 3,
+        "max_daily_loss_usdt": 50.0,
+        "max_consecutive_losses": 1,
+        "consecutive_loss_cooldown_min": 60
+    },
+
+    "reversal_strategy": {
+        "reversal_mode_enabled": false
+    }
+}

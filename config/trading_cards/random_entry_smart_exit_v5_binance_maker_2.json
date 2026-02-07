@@ -1,0 +1,87 @@
+{
+    "_meta": {
+        "card_id": "random_entry_smart_exit_v5_binance_maker_2",
+        "card_name": "🔄 隨機進場自適應卡 v5 (Binance Maker 2)",
+        "description": "v5 複製版：紙上用 Binance 價格/WS + Maker 模擬 (0.02%)",
+        "version": "5.0-binance-maker-2",
+        "created_at": "2025-12-25",
+        "market_condition": "隨機進場 (Binance paper source)",
+        "risk_level": "experimental-maker-binance",
+        "expected_win_rate": 0.50,
+        "tags": ["experimental", "random-entry", "binance", "maker", "paper", "v5"]
+    },
+    "_extends": "random_entry_smart_exit_v5",
+    "basic": {
+        "leverage": 10,
+        "leverage_min": 10,
+        "leverage_max": 10,
+        "_comment": "Binance paper 測試固定 10X，避免動態槓桿干擾勝率統計"
+    },
+    "trading_mode": {
+        "paper_mode": true,
+        "paper_price_source": "binance",
+        "strategy_card_enabled": false,
+        "random_entry_mode": true,
+        "random_entry_pure": true,
+        "random_entry_balance_enabled": true,
+        "random_entry_balance_batch_size": 20,
+        "random_entry_balance_prefill_size": 30,
+        "random_entry_balance_max_streak": 3,
+        "random_entry_balance_max_imbalance": 4,
+        "random_entry_balance_trend_bias_enabled": false,
+        "entry_veto_enabled": false,
+        "spike_fast_entry_enabled": false,
+        "_comment": "紙上模式指定 Binance 價格/WS"
+    },
+    "auto_optimize": {
+        "auto_optimize_enabled": false,
+        "_comment": "Binance paper 卡關閉 v5 auto_optimize，避免方向被回測結果鎖死"
+    },
+    "six_dim_system": {
+        "warmup_seconds": 10.0
+    },
+    "targets_and_stops": {
+        "target_profit_pct": 1.2,
+        "target_profit_min_pct": 1.0,
+        "target_profit_max_pct": 1.5,
+        "stop_loss_pct": 2.8,
+        "stop_loss_min_pct": 2.5,
+        "stop_loss_max_pct": 3.5,
+        "max_hold_minutes": 8.0,
+        "max_hold_min_minutes": 4.0,
+        "max_hold_max_minutes": 12.0,
+        "_comment": "目標勝率>60%：降低 TP、放寬 SL（含手續費後的淨ROE），避免 0.x% 噪音區被洗掉"
+    },
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "use_midpoint_lock": true,
+        "midpoint_ratio": 0.5,
+        "lock_start_pct": 0.4,
+        "min_lock_pct": 0.4,
+        "profit_lock_stages": [
+            [-999.0, 0.10, -2.8],
+            [0.10, 0.40, 0.0],
+            [0.40, 1.10, 0.4],
+            [1.10, 2.10, 1.0],
+            [2.10, 3.10, 2.0],
+            [3.10, 4.10, 3.0],
+            [4.10, 5.10, 4.0],
+            [5.10, 999.0, 5.0]
+        ],
+        "_comment": "M%M 階梯鎖利 + 中間數優先：0.1~0.4鎖0%、0.4~1.1鎖+0.4%(10X Maker 雙邊費用)、1.1~1.9鎖1%，依此類推"
+    },
+    "fees": {
+        "maker_fee_pct": 0.02,
+        "taker_fee_pct": 0.05,
+        "use_maker_simulation": true,
+        "fee_apply_leverage": true,
+        "maker_entry_batches": 1,
+        "maker_entry_duration_sec": 0.0,
+        "maker_price_offset_pct": 0.01,
+        "_comment": "Binance Maker 模擬：每邊 0.02% 手續費"
+    },
+    "auto_backtest_integration": {
+        "enabled": false,
+        "_comment": "Binance paper 測試關閉自動回測/自動換卡，避免方向/參數被外部模組改寫"
+    }
+}

@@ -1,0 +1,76 @@
+{
+  "_comment": "Whale Testnet Trader 配置",
+  
+  "mode": {
+    "paper_mode": false,
+    "_paper_mode_comment": "false=連接真實Testnet API, true=模擬交易",
+    "use_testnet": true,
+    "_use_testnet_comment": "true=Testnet, false=正式網(危險!)"
+  },
+  
+  "trading": {
+    "symbol": "BTC/USDT",
+    "leverage": 100,
+    "position_size_usdt": 100,
+    
+    "intervals": {
+      "ws_interval_sec": 1.0,
+      "analysis_interval_sec": 30.0,
+      "min_trade_interval_sec": 60.0
+    },
+    
+    "targets": {
+      "_comment": "100X槓桿，價格移動0.15%=槓桿後15%盈利",
+      "target_profit_pct": 0.15,
+      "stop_loss_pct": 0.10,
+      "max_hold_minutes": 30
+    },
+    
+    "fees": {
+      "maker_fee_pct": 0.02,
+      "taker_fee_pct": 0.04
+    },
+    
+    "risk_control": {
+      "max_daily_trades": 20,
+      "max_daily_loss_usdt": 500,
+      "max_concurrent_positions": 1
+    },
+    
+    "signal_requirements": {
+      "min_probability": 0.65,
+      "min_confidence": 0.55
+    }
+  },
+  
+  "tensorflow": {
+    "features": {
+      "market_state": [
+        "obi",
+        "wpi", 
+        "vpin",
+        "funding_rate",
+        "oi_change_pct",
+        "liq_pressure_long",
+        "liq_pressure_short"
+      ],
+      "price_action": [
+        "price_change_1m",
+        "price_change_5m",
+        "volatility_5m"
+      ],
+      "strategy_probs": "23個策略的機率"
+    },
+    "labels": {
+      "primary": "net_pnl_usdt > 0",
+      "regression": "price_move_pct"
+    },
+    "min_trades_for_training": 50
+  },
+  
+  "testnet": {
+    "api_base": "https://testnet.binancefuture.com",
+    "ws_base": "wss://fstream.binance.com",
+    "register_url": "https://testnet.binancefuture.com/en/register"
+  }
+}

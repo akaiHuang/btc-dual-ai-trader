@@ -1,0 +1,42 @@
+{
+  "initial_capital": 10000.0,
+  "max_position_pct": 0.5,
+  "max_concurrent_trades": 3,
+  "min_trades_for_learning": 10,
+  "learning_rate": 0.1,
+  "disable_strategy_win_rate": 0.3,
+  "boost_strategy_win_rate": 0.7,
+  "daily_loss_limit_pct": 0.05,
+  "consecutive_loss_pause": 5,
+  "use_ml_model": false,
+  "use_llm_advisor": false,
+  
+  "_comment": "策略權重調整 (會被自動學習更新)",
+  "strategy_weights": {
+    "ACCUMULATION": 1.0,
+    "DISTRIBUTION": 1.0,
+    "SHORT_SQUEEZE": 1.2,
+    "LONG_SQUEEZE": 1.2,
+    "WHIPSAW": 0.8,
+    "BULL_TRAP": 0.9,
+    "BEAR_TRAP": 0.9
+  },
+  
+  "_comment2": "風險管理參數",
+  "risk_management": {
+    "max_daily_trades": 10,
+    "min_probability_threshold": 0.6,
+    "min_confidence_threshold": 0.5,
+    "tp_sl_ratio_min": 1.5,
+    "volatility_filter": true,
+    "funding_rate_filter": true
+  },
+  
+  "_comment3": "學習參數",
+  "learning": {
+    "update_interval_trades": 5,
+    "weight_adjustment_speed": 0.1,
+    "performance_window_days": 30,
+    "min_sample_size": 10
+  }
+}

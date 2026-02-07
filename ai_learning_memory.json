@@ -1,0 +1,65 @@
+{
+  "stats": {
+    "total": 8,
+    "correct": 1,
+    "accuracy": 12.5
+  },
+  "mistakes": [
+    {
+      "time": "2025-11-25T23:36:48.201597",
+      "action": "SHORT",
+      "severity": "HIGH",
+      "reason": "Price moved 0.31% against prediction",
+      "context_summary": "The current market conditions indicate a strong be"
+    },
+    {
+      "time": "2025-11-26T06:41:33.737805",
+      "action": "SHORT",
+      "severity": "HIGH",
+      "reason": "Price moved 0.46% against prediction",
+      "context_summary": "The real-time whale status indicates a strong shor"
+    },
+    {
+      "time": "2025-11-26T07:02:43.094559",
+      "action": "SHORT",
+      "severity": "HIGH",
+      "reason": "Price moved 0.40% against prediction",
+      "context_summary": "The market remains in a volatile regime, but the w"
+    },
+    {
+      "time": "2025-11-26T23:32:53.598924",
+      "action": "SHORT",
+      "severity": "HIGH",
+      "reason": "Price moved 0.36% against prediction",
+      "context_summary": "The whale activity indicates a strong short positi"
+    },
+    {
+      "time": "2025-11-27T00:36:13.118073",
+      "action": "SHORT",
+      "severity": "HIGH",
+      "reason": "Price moved 0.73% against prediction",
+      "context_summary": "The current market conditions remain bearish, supp"
+    },
+    {
+      "time": "2025-11-27T10:01:21.042592",
+      "action": "SHORT",
+      "severity": "HIGH",
+      "reason": "Price moved 0.55% against prediction",
+      "context_summary": "Given the negative whale net quantity and the curr"
+    },
+    {
+      "time": "2025-11-27T11:39:12.464291",
+      "action": "LONG",
+      "severity": "NORMAL",
+      "reason": "Price moved -0.24% against prediction",
+      "context_summary": "Whale accumulation and bullish market regime sugge"
+    }
+  ],
+  "successes": [
+    {
+      "time": "2025-11-27T02:44:16.429200",
+      "action": "SHORT",
+      "context_summary": "The current market dynamics indicate a bearish sen"
+    }
+  ]
+}

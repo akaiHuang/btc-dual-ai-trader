@@ -1,0 +1,20 @@
+{
+  "ai_to_dragon2": {
+    "command": "SHORT",
+    "direction": "BEARISH",
+    "confidence": 85,
+    "leverage": 3,
+    "whale_reversal_price": 87500,
+    "take_profit_pct": 10.0,
+    "stop_loss_pct": 5.0,
+    "reasoning": "Whale dominance at 1.0 short with no flip, OBI still soft (0.71), and VPIN 0.86 confirm continued informed selling. Price inside 87.2 k band with no reclaim of 88.35 k invalidation. No cascade active,",
+    "timestamp": "2025-11-26T15:47:48.347425"
+  },
+  "dragon2_to_ai": {
+    "status": "IDLE"
+  },
+  "feedback_loop": {
+    "total_trades": 0
+  },
+  "last_updated": "2025-11-26T15:47:48.347434"
+}

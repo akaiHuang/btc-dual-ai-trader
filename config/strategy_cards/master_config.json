@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "name": "策略卡片主配置",
+    "version": "1.0.0",
+    "description": "控制當前啟用的策略卡片組合",
+    "last_updated": "2025-12-10"
+  },
+  "active_cards": {
+    "entry": "six_dim_strict",
+    "exit": "lock_profit",
+    "risk": "adaptive",
+    "regime": "startup"
+  },
+  "auto_switch": {
+    "enabled": true,
+    "evaluation_interval_sec": 300,
+    "min_trades_to_evaluate": 5,
+    "switch_cooldown_sec": 600,
+    "win_rate_threshold_to_switch": 40.0
+  },
+  "regime_card_mapping": {
+    "_comment": "根據市場狀態自動選擇卡片組合",
+    "TRENDING_UP": {
+      "entry": "momentum_follow",
+      "exit": "hold_winner",
+      "risk": "high_leverage"
+    },
+    "TRENDING_DOWN": {
+      "entry": "momentum_follow",
+      "exit": "quick_scalp",
+      "risk": "adaptive"
+    },
+    "RANGING": {
+      "entry": "conservative",
+      "exit": "lock_profit",
+      "risk": "low_risk"
+    },
+    "HIGH_VOLATILITY": {
+      "entry": "six_dim_strict",
+      "exit": "trailing_stop",
+      "risk": "low_risk"
+    },
+    "CALM": {
+      "entry": "scalp_fast",
+      "exit": "quick_scalp",
+      "risk": "adaptive"
+    },
+    "WHALE_ACTIVITY": {
+      "entry": "whale_follow",
+      "exit": "lock_profit",
+      "risk": "high_leverage"
+    }
+  },
+  "performance_history": {
+    "_comment": "記錄各卡片組合的歷史表現",
+    "combinations": []
+  }
+}

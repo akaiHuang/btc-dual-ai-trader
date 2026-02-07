@@ -1,0 +1,312 @@
+{
+    "_meta": {
+        "card_id": "win_rate_55_test_v1",
+        "card_name": "🎯 55%勝率測試卡 v1",
+        "description": "目標: 將 dYdX 勝率從 47% 提升到 55%，調整 TP/SL 比例 + 提早鎖利 + 減少執行摩擦",
+        "version": "1.0",
+        "created_at": "2025-12-24",
+        "market_condition": "勝率優化測試",
+        "risk_level": "experimental-win-rate-focus",
+        "expected_win_rate": 0.55,
+        "tags": ["win-rate-optimization", "TP-SL-adjustment", "early-lock", "execution-improvement"],
+        "theory": {
+            "hypothesis": "透過 (1) 縮小 TP、放寬 SL (2) 提早鎖利 (3) 減少執行摩擦 來提升勝率",
+            "key_principle": "犧牲部分單筆利潤換取更高勝率",
+            "baseline": "random_entry_smart_exit_v5 (勝率 47%)",
+            "target": "55% 勝率",
+            "changes": [
+                "1️⃣ TP/SL 調整: TP 2.5%→1.5%, SL 0.75%→0.90% (風報比 1:1.67)",
+                "2️⃣ 提早鎖利: 中位數啟動門檻 0.5%→0.4%, 鎖利比例 80%→90%",
+                "4️⃣ 執行優化: IOC 超時 1.5s→2.5s, 更保守的滑點處理"
+            ],
+            "trade_off": "勝率↑ 但單筆利潤↓，總利潤可能持平或略減"
+        }
+    },
+
+    "_extends": "random_entry_smart_exit_v5",
+    
+    "_optimization_notes": {
+        "problem": "dYdX 勝率 47%，Paper 勝率 60%，實盤有 13% 差距",
+        "analysis": {
+            "cause_1": "TP 2.5% 太遠，常常摸不到就回撤",
+            "cause_2": "鎖利啟動太慢 (0.8%)，小利潤來不及保護",
+            "cause_3": "IOC 超時太短，滑點吃掉部分勝率"
+        },
+        "solution": {
+            "direction_1": "TP 從 2.5% 降到 1.5% (更容易命中)",
+            "direction_2": "SL 從 0.75% 放寬到 0.90% (給更多呼吸空間)",
+            "direction_3": "鎖利門檻從 0.5%→0.4% 啟動更快",
+            "direction_4": "IOC 超時從 1.5s→2.5s 減少滑點"
+        },
+        "expected_result": {
+            "win_rate": "47% → 55% (+8%)",
+            "avg_profit_per_trade": "$0.01 → 可能略降",
+            "total_profit": "持平或略減 (但更穩定)"
+        }
+    },
+
+    "basic": {
+        "symbol": "BTC/USDT",
+        "leverage": 12,
+        "leverage_min": 12,
+        "leverage_max": 12,
+        "position_size_usdt": 100.0,
+        "_comment": "維持 12X 槓桿"
+    },
+
+    "trading_mode": {
+        "paper_mode": true,
+        "reverse_mode": false,
+        "contextual_mode": false,
+        "strategy_card_enabled": true,
+        "random_entry_mode": true,
+        "_comment": "維持隨機進場模式"
+    },
+
+    "dydx_sync": {
+        "dydx_ws_confirm_timeout_sec": 2.5,
+        "dydx_desync_close_sec": 25.0,
+        "dydx_sl_wait_timeout_sec": 15.0,
+        "dydx_sl_sync_grace_sec": 5.0,
+        "dydx_sl_missing_grace_sec": 4.0,
+        "dydx_sl_missing_min_interval_sec": 10.0,
+        "dydx_paper_master": true,
+        "dydx_resync_open_cooldown_sec": 10.0,
+        "_comment": "🔧 優化4: 放寬超時，減少執行摩擦 (1.5s→2.5s)"
+    },
+
+    "auto_optimize": {
+        "auto_optimize_enabled": false,
+        "_comment": "測試卡: 關閉自動優化，使用固定參數"
+    },
+
+    "pre_entry": {
+        "pre_entry_mode": false,
+        "pre_entry_threshold": 0.30,
+        "pre_entry_cancel_threshold": 0.10,
+        "pre_entry_timeout_sec": 10.0,
+        "pre_entry_price_offset": 5.0
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 1.50,
+        "target_profit_min_pct": 1.00,
+        "target_profit_max_pct": 2.00,
+        "stop_loss_pct": 0.90,
+        "stop_loss_min_pct": 0.70,
+        "stop_loss_max_pct": 1.10,
+        "max_hold_minutes": 5.0,
+        "max_hold_min_minutes": 2.0,
+        "max_hold_max_minutes": 8.0,
+        "_comment": "🔧 優化1: TP 2.5%→1.5%, SL 0.75%→0.90% (風報比 1:1.67，勝率需 37.5% 打平)"
+    },
+
+    "exit_rules": {
+        "three_line_reversal_enabled": false,
+        "_comment": "維持關閉三線反轉"
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "use_midpoint_lock": true,
+        "midpoint_ratio": 0.90,
+        "lock_start_pct": 0.40,
+        "min_lock_pct": 0.20,
+        "tp_update_on_phase_change": true,
+        "tp_update_on_integer_cross": true,
+        "tp_update_integer_step": 0.5,
+        "tp_update_integer_offset": 0.0,
+        "tp_update_cooldown_sec": 30.0,
+        "tp_update_min_price_diff_pct": 0.15,
+        "tp_update_policy": "extend",
+        "sl_update_cooldown_sec": 2.0,
+        "sl_update_min_diff_pct": 0.02,
+        "n_lock_n_threshold": 0.50,
+        "n_lock_n_buffer": 0.20,
+        "profit_lock_stages": [
+            [-999.0, 0.0, -0.90],
+            [0.0, 0.40, -0.90],
+            [0.40, 0.70, 0.0],
+            [0.70, 1.00, 0.30],
+            [1.00, 1.30, 0.60],
+            [1.30, 999.0, 0.90]
+        ],
+        "_comment": "🔧 優化2: 提早鎖利 - 0.4%就開始鎖 (原0.8%)，中位數90%鎖利 (原80%)"
+    },
+
+    "signal_quality": {
+        "min_probability": 0.00,
+        "min_confidence": 0.00,
+        "signal_confirm_seconds": 0,
+        "min_signal_advantage": 0.00,
+        "_comment": "維持隨機進場無信號要求"
+    },
+
+    "six_dim_system": {
+        "six_dim_enabled": false,
+        "six_dim_alignment_threshold": 0,
+        "six_dim_min_score_to_trade": 0,
+        "warmup_seconds": 0.0,
+        "require_momentum_confirm": false,
+        "allowed_directions": ["SHORT", "LONG"],
+        "_comment": "維持六維關閉 (隨機進場)"
+    },
+
+    "price_confirm": {
+        "price_confirm_enabled": false,
+        "price_confirm_threshold": 0.00
+    },
+
+    "obi_line": {
+        "obi_line_weight": 1,
+        "obi_long_threshold": -0.50,
+        "obi_short_threshold": 0.50,
+        "obi_strong_threshold": 0.80
+    },
+
+    "momentum_line": {
+        "momentum_line_weight": 1,
+        "momentum_long_threshold": -0.50,
+        "momentum_short_threshold": 0.50,
+        "momentum_strong_threshold": 0.80
+    },
+
+    "volume_line": {
+        "volume_line_weight": 1,
+        "volume_long_threshold": 0.50,
+        "volume_short_threshold": 1.50,
+        "volume_strong_threshold": 2.00
+    },
+
+    "analysis_frequency": {
+        "ws_interval_sec": 1.0,
+        "analysis_interval_sec": 1.0,
+        "min_trade_interval_sec": 5.0
+    },
+
+    "analysis_windows": {
+        "fast_window_seconds": 5,
+        "medium_window_seconds": 30,
+        "slow_window_seconds": 120
+    },
+
+    "fees": {
+        "maker_fee_pct": 0.0,
+        "taker_fee_pct": 0.0,
+        "use_maker_simulation": false,
+        "maker_entry_batches": 1,
+        "maker_entry_duration_sec": 0.0,
+        "maker_price_offset_pct": 0.0,
+        "_comment": "維持手續費設定"
+    },
+
+    "risk_control": {
+        "max_daily_trades": 500,
+        "max_daily_loss_usdt": 50.0,
+        "max_concurrent_positions": 1,
+        "max_consecutive_losses": 999,
+        "consecutive_loss_cooldown_min": 0,
+        "obi_consistency_check": false,
+        "consecutive_wins_to_restore": 1,
+        "_comment": "維持寬鬆風控"
+    },
+
+    "early_exit": {
+        "early_stop_grace_sec": 5.0,
+        "noise_stop_sigma": 2.0
+    },
+
+    "whale_detection": {
+        "whale_alert_threshold_usdt": 100000,
+        "whale_emergency_threshold_usdt": 500000,
+        "price_spike_enabled": true,
+        "price_spike_threshold_pct": 0.50
+    },
+
+    "dynamic_profit": {
+        "dynamic_profit_enabled": false,
+        "smart_exit_gross_target": 3.0,
+        "smart_exit_net_target": 2.5,
+        "quick_profit_time_limit": 30.0,
+        "no_momentum_enabled": false,
+        "no_momentum_check_after_min": 5.0,
+        "no_momentum_min_profit": 1.0,
+        "no_momentum_loss_trigger": -0.2
+    },
+
+    "two_phase_exit": {
+        "two_phase_exit_enabled": false,
+        "phase1_fee_threshold_pct": 0.0,
+        "phase1_strict_stop_loss_pct": 0.3,
+        "phase1_target_pct": 1.0,
+        "phase2_trailing_start_pct": 1.0,
+        "phase2_trailing_offset_pct": 0.5,
+        "phase2_max_target_pct": 5.0
+    },
+
+    "gpt_system": {
+        "gpt_optimization_enabled": false,
+        "gpt_trade_filter_enabled": false
+    },
+
+    "chase_protection": {
+        "enabled": false,
+        "same_direction_cooldown_sec": 10,
+        "max_consecutive_same_direction": 10,
+        "price_move_block_pct": 2.0,
+        "score_decay_block_enabled": false,
+        "description": "維持關閉追單保護"
+    },
+
+    "early_exit_v2": {
+        "enabled": true,
+        "profit_drawdown_threshold": 0.40,
+        "min_profit_for_drawdown_check": 1.5,
+        "stall_time_threshold_sec": 45.0,
+        "quick_reversal_drop_pct": 1.0,
+        "grace_period_sec": 4.0,
+        "six_dim_enabled": false,
+        "opposite_score_increase_threshold": 10.0,
+        "score_gap_narrowing_threshold": 5.0,
+        "description": "🔧 優化: 獲利回撤40%時考慮出場 (原50%)"
+    },
+
+    "auto_backtest_integration": {
+        "enabled": false,
+        "_comment": "測試卡: 關閉自動回測"
+    },
+
+    "win_rate_55_specific": {
+        "baseline": "random_entry_smart_exit_v5",
+        "target_win_rate": "55%",
+        "description": "🎯 55%勝率測試卡 - 針對 1,2,4 優化方向",
+        "changes_summary": {
+            "1_tp_sl_adjustment": {
+                "before": "TP 2.5% / SL 0.75% (風報比 3.33:1, 需 23% 勝率打平)",
+                "after": "TP 1.5% / SL 0.90% (風報比 1.67:1, 需 37.5% 勝率打平)",
+                "effect": "TP 更容易命中，SL 有更多呼吸空間"
+            },
+            "2_early_lock_profit": {
+                "before": "鎖利啟動 0.8%，中位數 80%",
+                "after": "鎖利啟動 0.4%，中位數 90%",
+                "effect": "更快保護小利潤，減少獲利回吐"
+            },
+            "4_execution_friction": {
+                "before": "IOC 超時 1.5s, desync 20s",
+                "after": "IOC 超時 2.5s, desync 25s",
+                "effect": "減少滑點損耗，提高成交品質"
+            }
+        },
+        "expected_metrics": {
+            "win_rate": "47% → 55% (+8%)",
+            "avg_profit": "可能略降 ($0.01 → ~$0.008)",
+            "total_profit": "持平或略減，但更穩定"
+        },
+        "monitoring": [
+            "📊 勝率變化: 目標 >55%",
+            "💰 平均獲利: 觀察是否大幅下降",
+            "⏱️ 持倉時間: 應該縮短 (因 TP 更近)",
+            "🔄 執行品質: 觀察 Paper vs dYdX 差距是否縮小"
+        ]
+    }
+}

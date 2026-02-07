@@ -1,0 +1,15 @@
+{
+  "plan_id": "af48ebc8-8cdb-4e9d-8f94-61c790da1b92",
+  "created_at": "2025-11-26T11:08:50.546548",
+  "outlook": "NEUTRAL",
+  "reasoning": "Initializing...",
+  "phases": [],
+  "grand_strategy": {
+    "active": true,
+    "direction": "BEARISH",
+    "thesis": "Real-time whales remain 100 % short (-12.77 BTC) with no flip in 30 min, price hugging 87.2 k micro-support. Flat funding, zero long-liq cushion, and VPIN 0.86 informed selling keep downside path open to 86.4-86.2 k. 4-H close >88 350 required to negate.",
+    "target_duration_hours": 3,
+    "start_time": "2025-11-28T15:30:00Z",
+    "invalidation_price": 88350
+  }
+}

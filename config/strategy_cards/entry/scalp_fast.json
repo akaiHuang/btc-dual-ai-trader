@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "card_id": "scalp_fast",
+    "card_type": "entry",
+    "name": "💨 剝頭皮快進",
+    "description": "極快進場，搶小波動，適合流動性好的時段",
+    "best_for": ["平靜市場", "小波動"],
+    "win_rate_target": "60%+",
+    "trade_frequency": "極高 (每天 50-100 筆)"
+  },
+  
+  "parameters": {
+    "six_dim_enabled": true,
+    "six_dim_min_score_to_trade": 4,
+    "six_dim_alignment_threshold": 3,
+    
+    "min_probability": 0.45,
+    "min_confidence": 0.35,
+    "signal_confirm_seconds": 1,
+    "min_signal_advantage": 0.08,
+    
+    "price_confirm_enabled": false,
+    "price_confirm_threshold": 0.08,
+    
+    "obi_long_threshold": 0.03,
+    "obi_short_threshold": -0.03,
+    "obi_consistency_check": false,
+    
+    "require_momentum_confirm": false,
+    "momentum_long_threshold": 0.005,
+    "momentum_short_threshold": -0.005,
+    
+    "warmup_seconds": 5.0
+  },
+  
+  "veto_rules": {
+    "score_too_low": "六維分數 < 4",
+    "high_volatility": "波動率 > 0.5%"
+  }
+}

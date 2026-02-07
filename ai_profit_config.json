@@ -1,0 +1,180 @@
+{
+  "dynamic_profit_taking": {
+    "enabled": true,
+    "base_targets": {
+      "standard": 12.0,
+      "dead_market_reversal": 10.0,
+      "reversal_ambush": 15.0
+    },
+    "performance_based_adjustment": {
+      "enabled": true,
+      "min_trades_for_adjustment": 5,
+      "win_rate_thresholds": {
+        "excellent": {
+          "min_win_rate": 70,
+          "multiplier": 2.0,
+          "max_target": 50.0
+        },
+        "good": {
+          "min_win_rate": 50,
+          "multiplier": 1.5,
+          "max_target": 30.0
+        },
+        "poor": {
+          "max_win_rate": 30,
+          "multiplier": 1.0,
+          "max_target": 15.0
+        }
+      }
+    },
+    "progressive_targets": {
+      "enabled": false
+    },
+    "trailing_stop": {
+      "enabled": false
+    }
+  },
+  "last_updated": "2025-11-28T05:43:58.173713",
+  "ai_adjustment_history": [
+    {
+      "timestamp": "2025-11-28T05:39:05.880817",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0005%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0005%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:39:19.342843",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0000%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0000%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:39:31.769697",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0000%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0000%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:39:46.272796",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0008%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0008%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:39:59.585925",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0017%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0017%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:40:13.337272",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0050%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0050%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:40:25.761233",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0053%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0053%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:40:43.340847",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0051%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0051%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:41:07.214962",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0043%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0043%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:41:19.863507",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0035%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0035%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:41:33.398432",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0040%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0040%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:41:55.695504",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0022%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0022%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:42:08.687105",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0010%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0010%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:42:20.959645",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0015%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0015%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:42:42.345831",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0038%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0038%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:42:54.939241",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0042%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0042%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:43:08.892885",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0030%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0030%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:43:30.158533",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0015%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0015%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:43:43.385467",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0011%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0011%) \u2192 Max target 3%"
+      ]
+    },
+    {
+      "timestamp": "2025-11-28T05:43:58.173719",
+      "reason": "Auto-adjustment based on WR=0%, ATR=0.0005%",
+      "changes": [
+        "\ud83d\udca4 Low volatility (ATR: 0.0005%) \u2192 Max target 3%"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+    "// 說明": "真實幣安合約交易配置",
+    "// 警告": "此文件用於真實交易，請謹慎設定！",
+    
+    "api": {
+        "// 提示": "API Key 請設定在 .env 檔案，不要寫在這裡",
+        "use_mainnet": true,
+        "testnet": false
+    },
+    
+    "trading": {
+        "symbol": "BTCUSDT",
+        "leverage": 50,
+        "margin_type": "isolated",
+        
+        "// 金額模式說明": "signal=跟隨信號, fixed=固定金額, compound=複利, percent=百分比",
+        "amount_mode": "signal",
+        "fixed_amount_usdt": 100.0,
+        "percent_of_balance": 95,
+        "compound_min_amount": 10.0
+    },
+    
+    "execution": {
+        "use_maker_order": true,
+        "maker_price_offset_pct": 0.01,
+        "maker_wait_seconds": 30,
+        "fallback_to_taker": true,
+        
+        "signal_expiry_seconds": 60,
+        
+        "// 手續費率": "Maker 0.02%, Taker 0.05%",
+        "maker_fee_rate": 0.0002,
+        "taker_fee_rate": 0.0005
+    },
+    
+    "socket": {
+        "host": "localhost",
+        "port": 9528,
+        "reconnect_delay": 5,
+        "heartbeat_interval": 30
+    },
+    
+    "risk_management": {
+        "// 風險控管": "超過以下限制會停止交易",
+        "max_daily_trades": 50,
+        "max_daily_loss_usdt": 500.0,
+        "max_daily_loss_pct": 20.0,
+        
+        "// 持倉限制": "",
+        "max_position_value_usdt": 10000.0,
+        "max_leverage": 100,
+        
+        "// 緊急止損": "",
+        "emergency_stop_loss_pct": 50.0
+    },
+    
+    "logging": {
+        "trade_log_file": "data/real_binance_trades.json",
+        "comparison_log_file": "data/paper_real_comparison.json",
+        "log_level": "INFO"
+    },
+    
+    "notifications": {
+        "// 通知": "未來可擴充 Telegram / Discord 通知",
+        "enabled": false,
+        "telegram_bot_token": "",
+        "telegram_chat_id": ""
+    }
+}

@@ -1,0 +1,173 @@
+{
+  "last_update": "2025-12-18T14:33:06.802989",
+  "validation_summary": {
+    "total_signals": 500,
+    "overall_accuracy": 50.8,
+    "long_accuracy": 46.9,
+    "short_accuracy": 66.7
+  },
+  "six_dim": {
+    "enabled": true,
+    "current_threshold": 7,
+    "optimal_threshold": 10,
+    "high_confidence_threshold": 12,
+    "accuracy_by_score": {
+      "12": {
+        "accuracy": 71.4,
+        "sample_size": 14,
+        "recommendation": "高信心進場"
+      },
+      "10": {
+        "accuracy": 55.2,
+        "sample_size": 87,
+        "recommendation": "可進場"
+      },
+      "9": {
+        "accuracy": 53.1,
+        "sample_size": 32,
+        "recommendation": "謹慎進場"
+      },
+      "8": {
+        "accuracy": 49.7,
+        "sample_size": 163,
+        "recommendation": "不建議"
+      },
+      "7": {
+        "accuracy": 48.0,
+        "sample_size": 204,
+        "recommendation": "不建議"
+      }
+    },
+    "direction_adjustments": {
+      "long": {
+        "min_score_required": 10,
+        "note": "LONG信號需要更高分數確認"
+      },
+      "short": {
+        "min_score_required": 8,
+        "note": "SHORT信號準確率較高，可放寬門檻"
+      }
+    },
+    "recommendations": [
+      "將六維門檻從 7 提升到 10",
+      "12分信號給予高信心標籤",
+      "做多時需要更嚴格確認"
+    ]
+  },
+  "obi": {
+    "enabled": true,
+    "current_thresholds": {
+      "long": 0.05,
+      "short": -0.05
+    },
+    "optimal_thresholds": {
+      "long": 0.08,
+      "short": -0.05
+    },
+    "accuracy_by_range": {
+      "strong_short": {
+        "range": [
+          -1.0,
+          -0.1
+        ],
+        "accuracy": 68.9,
+        "sample_size": 119
+      },
+      "mild_short": {
+        "range": [
+          -0.1,
+          -0.05
+        ],
+        "accuracy": 69.2,
+        "sample_size": 26
+      },
+      "neutral": {
+        "range": [
+          -0.05,
+          0.05
+        ],
+        "accuracy": null,
+        "sample_size": 221
+      },
+      "mild_long": {
+        "range": [
+          0.05,
+          0.1
+        ],
+        "accuracy": 63.5,
+        "sample_size": 63
+      },
+      "strong_long": {
+        "range": [
+          0.1,
+          1.0
+        ],
+        "accuracy": 56.3,
+        "sample_size": 71
+      }
+    },
+    "findings": [
+      "SHORT方向OBI信號更準確 (68-69%)",
+      "LONG方向OBI準確率較低 (56-63%)",
+      "建議提高LONG的OBI門檻到0.08"
+    ]
+  },
+  "rsi": {
+    "enabled": true,
+    "status": "需要檢查",
+    "issue": "所有信號都被分類為oversold，RSI讀取可能有問題",
+    "accuracy_by_range": {
+      "oversold": {
+        "range": [
+          0,
+          30
+        ],
+        "accuracy": 44.2,
+        "sample_size": 500
+      }
+    }
+  },
+  "direction_bias": {
+    "finding": "系統做空判斷準確率(66.7%)明顯高於做多(46.9%)",
+    "adjustments": {
+      "long_confidence_penalty": -1,
+      "short_confidence_bonus": 1
+    },
+    "filters": {
+      "high_confidence_short": {
+        "condition": "six_dim >= 10 AND direction = SHORT",
+        "action": "高信心進場"
+      },
+      "low_confidence_long": {
+        "condition": "six_dim <= 8 AND direction = LONG",
+        "action": "跳過或減倉"
+      }
+    }
+  },
+  "new_indicators_discovery": {
+    "last_update": "2025-12-18T14:31:59.765160",
+    "indicators": {
+      "obi_price_divergence": {
+        "accuracy": 79.03225806451613,
+        "sample_size": 124,
+        "description": "OBI與價格方向背離時的反轉信號"
+      },
+      "perfect_alignment": {
+        "accuracy": 71.42857142857143,
+        "sample_size": 14,
+        "description": "六維分數達到12/12的高信心信號"
+      },
+      "strong_obi": {
+        "accuracy": 64.03508771929825,
+        "sample_size": 114,
+        "description": "|OBI| > 0.2 的強方向信號"
+      }
+    }
+  },
+  "auto_calibration": {
+    "enabled": false,
+    "run_interval_hours": 24,
+    "min_sample_size": 100,
+    "auto_adjust_thresholds": false
+  }
+}

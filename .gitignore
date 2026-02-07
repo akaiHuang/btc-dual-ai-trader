@@ -1,0 +1,117 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Environment Variables（絕對不可提交！）
+.env
+.env.local
+.env.*.local
+.env.production
+config/secrets.json
+config/config.json
+**/api_keys.json
+**/*secret*
+
+# AI Artifacts
+ai_dev/artifacts/*.parquet
+ai_dev/artifacts/*.bin
+ai_dev/artifacts/trajectories.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# InfluxDB
+influxdb_data/
+
+# PostgreSQL
+postgres_data/
+
+# Redis
+redis_data/
+
+# Logs
+logs/
+*.log
+
+# Data
+data/
+user_data/data/
+*.csv
+*.parquet
+*.h5
+*.hdf5
+
+# Models
+models/trained/*.pkl
+models/trained/*.joblib
+models/trained/*.h5
+models/trained/*.pt
+models/trained/*.pth
+!models/trained/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Binance API keys (安全第一！)
+**/api_keys.json
+**/secrets.yaml

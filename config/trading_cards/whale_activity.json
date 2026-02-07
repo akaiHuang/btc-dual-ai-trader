@@ -1,0 +1,64 @@
+{
+    "_meta": {
+        "card_id": "whale_activity",
+        "card_name": "🐋 鯨魚活動卡",
+        "description": "適用於偵測到大戶活動時，跟隨鯨魚方向",
+        "version": "1.0",
+        "created_at": "2025-01-10",
+        "market_condition": "鯨魚活躍",
+        "risk_level": "medium-high",
+        "expected_win_rate": 0.52,
+        "tags": ["whale", "follow-smart-money", "institutional"]
+    },
+
+    "_extends": "base_default",
+
+    "basic": {
+        "leverage": 35,
+        "position_size_usdt": 100.0
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 0.60,
+        "target_profit_max_pct": 1.00,
+        "stop_loss_pct": 0.30,
+        "max_hold_minutes": 40.0
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "n_lock_n_threshold": 1.2,
+        "n_lock_n_buffer": 0.2
+    },
+
+    "signal_quality": {
+        "min_probability": 0.75,
+        "min_confidence": 0.65
+    },
+
+    "obi_line": {
+        "obi_long_threshold": 0.20,
+        "obi_short_threshold": -0.20,
+        "obi_strong_threshold": 0.40,
+        "obi_consistency_check": true
+    },
+
+    "volume_line": {
+        "volume_long_threshold": 1.20,
+        "volume_short_threshold": 0.80,
+        "volume_strong_threshold": 1.50
+    },
+
+    "whale_detection": {
+        "whale_alert_threshold_usdt": 50000,
+        "whale_emergency_threshold_usdt": 150000,
+        "whale_cascade_count": 2,
+        "whale_cascade_window_sec": 5
+    },
+
+    "risk_control": {
+        "max_daily_trades": 8,
+        "max_consecutive_losses": 2,
+        "consecutive_loss_cooldown_min": 30
+    }
+}

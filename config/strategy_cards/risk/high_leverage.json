@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "card_id": "high_leverage",
+    "card_type": "risk",
+    "name": "🔥 高槓桿",
+    "description": "高風險高報酬，適合高置信度信號",
+    "best_for": ["強趨勢", "高置信信號"],
+    "risk_level": "高"
+  },
+  
+  "parameters": {
+    "leverage_min": 50,
+    "leverage_max": 100,
+    "leverage_default": 75,
+    
+    "position_size_usdt": 100,
+    "max_daily_trades": 30,
+    "max_concurrent_positions": 1,
+    
+    "max_daily_loss_pct": 25.0,
+    "max_consecutive_losses": 2,
+    "consecutive_loss_cooldown_min": 30,
+    
+    "consecutive_wins_to_restore": 1,
+    
+    "volatility_leverage_adjust": true,
+    "volatility_high_threshold": 0.25,
+    "volatility_low_threshold": 0.08,
+    "leverage_reduce_on_high_vol": 0.7,
+    "leverage_increase_on_low_vol": 1.1
+  },
+  
+  "warning": "⚠️ 高槓桿風險大，建議配合嚴格的進場卡片使用"
+}

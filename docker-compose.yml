@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - 存儲交易記錄、訊號標註、AI 訓練資料
+  postgres:
+    image: postgres:15-alpine
+    container_name: btn_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trading_db}
+      POSTGRES_USER: ${POSTGRES_USER:-trading_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-your_password_here}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+      TZ: Asia/Taipei
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trading_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # InfluxDB - 時間序列資料（OHLCV、指標、訂單簿快照）
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: btn_influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD:-your_password_here}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-trading_org}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-market_data}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-your_token_here}
+      TZ: Asia/Taipei
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - 即時快取（OBI、市場狀態、WebSocket 資料）
+  redis:
+    image: redis:7-alpine
+    container_name: btn_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-your_password_here}
+    environment:
+      TZ: Asia/Taipei
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus - 監控指標收集
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: btn_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    environment:
+      TZ: Asia/Taipei
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  # Grafana - 視覺化監控儀表板
+  grafana:
+    image: grafana/grafana:latest
+    container_name: btn_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+      TZ: Asia/Taipei
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  influxdb_data:
+    driver: local
+  influxdb_config:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  default:
+    name: btn_network

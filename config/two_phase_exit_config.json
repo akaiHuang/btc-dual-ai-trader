@@ -1,0 +1,51 @@
+{
+  "enabled": true,
+  "phase1": {
+    "fee_threshold_pct": 0.3,
+    "base_stop_loss_pct": 1.5,
+    "base_target_pct": 1.5
+  },
+  "phase2": {
+    "trailing_start_pct": 0.5,
+    "base_trailing_offset_pct": 0.3,
+    "base_max_target_pct": 6.0
+  },
+  "market_quality": {
+    "good_threshold": 65,
+    "bad_threshold": 35
+  },
+  "dynamic_adjustment": {
+    "good": {
+      "tp_multiplier": 1.3,
+      "risk_ratio": 1.0
+    },
+    "normal": {
+      "tp_multiplier": 1.0,
+      "risk_ratio": 0.9
+    },
+    "bad": {
+      "tp_multiplier": 0.85,
+      "risk_ratio": 0.75
+    }
+  },
+  "historical_stats": {
+    "avg_win_pct": 1.37,
+    "avg_loss_pct": 0.94,
+    "max_win_pct": 2.2,
+    "min_win_pct": 0.41,
+    "win_count": 3,
+    "loss_count": 7,
+    "win_rate": 0.3,
+    "total_trades_analyzed": 10,
+    "last_analyzed": "2026-01-06T09:31:29.769447",
+    "analyzed_files": [
+      "trades_20260104_205902.json",
+      "trades_20260104_205841.json",
+      "trades_20260104_205647.json",
+      "trades_20260103_201044.json",
+      "trades_20260103_152401.json"
+    ]
+  },
+  "_last_updated": "2026-01-06T09:31:29.769512",
+  "_auto_updated": true
+}

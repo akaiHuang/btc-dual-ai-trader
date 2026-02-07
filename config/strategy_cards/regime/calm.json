@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "card_id": "calm",
+    "card_type": "regime",
+    "name": "😌 平靜市場",
+    "description": "波動極低，適合剝頭皮策略"
+  },
+  
+  "detection_rules": {
+    "conditions": [
+      "volatility_5m < 0.05%",
+      "volatility_15m < 0.10%",
+      "abs(obi) < 0.05",
+      "no_whale_activity"
+    ],
+    "required_matches": 3,
+    "duration_min_sec": 600
+  },
+  
+  "parameters": {
+    "calm_volatility_threshold_5m": 0.05,
+    "calm_volatility_threshold_15m": 0.10,
+    "obi_calm_threshold": 0.05,
+    "min_calm_duration_sec": 600
+  },
+  
+  "recommended_cards": {
+    "entry": "scalp_fast",
+    "exit": "quick_scalp",
+    "risk": "adaptive"
+  },
+  
+  "tip": "💡 平靜市場適合高頻剝頭皮，小賺多次累積"
+}

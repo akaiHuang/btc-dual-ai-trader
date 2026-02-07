@@ -1,0 +1,316 @@
+{
+    "_meta": {
+        "card_id": "random_entry_smart_exit_v5",
+        "card_name": "🔄 隨機進場自適應卡 v5 (v4 + Auto-Optimized)",
+        "description": "實驗卡片 v5 - 基於 v4 高槓桿隨機進場 + 自動讀取 auto_optimized 動態調整",
+        "version": "5.0",
+        "created_at": "2025-12-15",
+        "market_condition": "自適應 (基於 v4，根據回測結果動態調整)",
+        "risk_level": "experimental-high-leverage-adaptive",
+        "expected_win_rate": 0.50,
+        "tags": ["experimental", "random-entry", "high-leverage", "50X", "auto-optimized", "v5"],
+        "theory": {
+            "hypothesis": "v5: 保持 v4 的隨機進場 + 50X高槓桿，加上 auto_optimized 動態調整方向和風報比",
+            "key_principle": "v4 核心策略 + 自我進化能力",
+            "base": "random_entry_smart_exit_v4",
+            "additions": [
+                "auto_optimize: 自動讀取最新 auto_optimized 配置",
+                "auto_backtest: 觸發條件時自動回測優化",
+                "direction_filter: 根據回測結果自動切換 LONG/SHORT"
+            ]
+        }
+    },
+
+    "_extends": "random_entry_smart_exit_v4",
+    
+    "_notes": {
+        "v5_is_v4_plus_auto_optimize": true,
+        "base_strategy": "v4 隨機進場 + 50X槓桿 + 等比例止盈止損",
+        "added_features": [
+            "auto_optimize: 啟動時自動載入最新 auto_optimized 配置",
+            "auto_backtest: 虧損觸發自動回測分析",
+            "dynamic_direction: 根據 LONG/SHORT 勝率自動切換方向"
+        ],
+        "what_can_be_adjusted": [
+            "allowed_directions (只做多/只做空/雙向)",
+            "six_dim_min_score_to_trade (信號閾值，若需要)",
+            "止盈止損微調 (根據歷史數據)"
+        ]
+    },
+
+    "basic": {
+        "symbol": "BTC/USDT",
+        "leverage": 12,
+        "leverage_min": 12,
+        "leverage_max": 12,
+        "position_size_usdt": 100.0,
+        "_comment": "繼承 v4: 50X高槓桿"
+    },
+
+    "trading_mode": {
+        "paper_mode": true,
+        "reverse_mode": false,
+        "contextual_mode": false,
+        "strategy_card_enabled": true,
+        "random_entry_mode": true,
+        "_comment": "繼承 v4: 隨機進場模式"
+    },
+
+    "dydx_sync": {
+        "dydx_ws_confirm_timeout_sec": 1.5,
+        "dydx_desync_close_sec": 20.0,
+        "dydx_sl_wait_timeout_sec": 12.0,
+        "dydx_sl_sync_grace_sec": 4.0,
+        "dydx_sl_missing_grace_sec": 3.0,
+        "dydx_sl_missing_min_interval_sec": 8.0,
+        "dydx_paper_master": true,
+        "dydx_resync_open_cooldown_sec": 8.0,
+        "max_dydx_spread_pct": 0.002,
+        "dydx_use_reference_entry_price": true,
+        "dydx_use_reference_exit_price": true
+    },
+
+    "auto_optimize": {
+        "auto_optimize_enabled": true,
+        "auto_optimize_config_dir": "config/trading_cards",
+        "auto_optimize_config_pattern": "auto_optimized_*.json",
+        "auto_optimize_use_latest": true,
+        "auto_optimize_fallback_to_default": true,
+        "auto_optimize_reload_interval_sec": 300,
+        "apply_on_startup": true,
+        "log_applied_config": true,
+        "_comment": "v5 專屬：自動載入最新的 auto_optimized 配置"
+    },
+
+    "pre_entry": {
+        "pre_entry_mode": false,
+        "pre_entry_threshold": 0.30,
+        "pre_entry_cancel_threshold": 0.10,
+        "pre_entry_timeout_sec": 10.0,
+        "pre_entry_price_offset": 5.0
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 2.50,
+        "target_profit_min_pct": 1.50,
+        "target_profit_max_pct": 4.00,
+        "stop_loss_pct": 0.75,
+        "stop_loss_min_pct": 0.50,
+        "stop_loss_max_pct": 1.00,
+        "max_hold_minutes": 5.0,
+        "max_hold_min_minutes": 2.0,
+        "max_hold_max_minutes": 10.0,
+        "_comment": "繼承 v4: 50X槓桿 止盈2.5% 止損0.75% 風報比1:3.3"
+    },
+
+    "exit_rules": {
+        "three_line_reversal_enabled": false,
+        "_comment": "繼承 v4: 關閉三線反轉，讓 N%鎖N% 控制出場"
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "use_midpoint_lock": true,
+        "midpoint_ratio": 0.8,
+        "lock_start_pct": 0.3,
+        "min_lock_pct": 0.15,
+        "tp_update_on_phase_change": true,
+        "tp_update_on_integer_cross": true,
+        "tp_update_integer_step": 1.0,
+        "tp_update_integer_offset": 0.0,
+        "tp_update_cooldown_sec": 45.0,
+        "tp_update_min_price_diff_pct": 0.2,
+        "tp_update_policy": "extend",
+        "sl_update_cooldown_sec": 2.5,
+        "sl_update_min_diff_pct": 0.02,
+        "n_lock_n_threshold": 0.75,
+        "n_lock_n_buffer": 0.25,
+        "profit_lock_stages": [
+            [-999.0, 0.0, -0.75],
+            [0.0, 0.30, -0.75],
+            [0.30, 0.60, 0.0],
+            [0.60, 1.00, 0.30],
+            [1.00, 1.50, 0.50],
+            [1.50, 2.00, 0.90],
+            [2.00, 999.0, 1.40]
+        ],
+        "_comment": "🔧 v14.9.8: 提早進入鎖利區 - 0.3%開始保本，0.6%開始鎖利"
+    },
+
+    "signal_quality": {
+        "min_probability": 0.00,
+        "min_confidence": 0.00,
+        "signal_confirm_seconds": 0,
+        "min_signal_advantage": 0.00,
+        "_comment": "繼承 v4: 隨機進場無信號要求"
+    },
+
+    "six_dim_system": {
+        "six_dim_enabled": false,
+        "six_dim_alignment_threshold": 0,
+        "six_dim_min_score_to_trade": 0,
+        "warmup_seconds": 0.0,
+        "require_momentum_confirm": false,
+        "allowed_directions": ["SHORT", "LONG"],
+        "_comment": "繼承 v4: 六維關閉 (隨機進場)，allowed_directions 可被 auto_optimized 覆蓋"
+    },
+
+    "price_confirm": {
+        "price_confirm_enabled": false,
+        "price_confirm_threshold": 0.00
+    },
+
+    "obi_line": {
+        "obi_line_weight": 1,
+        "obi_long_threshold": -0.50,
+        "obi_short_threshold": 0.50,
+        "obi_strong_threshold": 0.80
+    },
+
+    "momentum_line": {
+        "momentum_line_weight": 1,
+        "momentum_long_threshold": -0.50,
+        "momentum_short_threshold": 0.50,
+        "momentum_strong_threshold": 0.80
+    },
+
+    "volume_line": {
+        "volume_line_weight": 1,
+        "volume_long_threshold": 0.50,
+        "volume_short_threshold": 1.50,
+        "volume_strong_threshold": 2.00
+    },
+
+    "analysis_frequency": {
+        "ws_interval_sec": 1.0,
+        "analysis_interval_sec": 1.0,
+        "min_trade_interval_sec": 5.0
+    },
+
+    "analysis_windows": {
+        "fast_window_seconds": 5,
+        "medium_window_seconds": 30,
+        "slow_window_seconds": 120
+    },
+
+    "fees": {
+        "maker_fee_pct": 0.0,
+        "taker_fee_pct": 0.0,
+        "use_maker_simulation": false,
+        "maker_entry_batches": 1,
+        "maker_entry_duration_sec": 0.0,
+        "maker_price_offset_pct": 0.0,
+        "_comment": "繼承 v4: 納入真實手續費"
+    },
+
+    "risk_control": {
+        "max_daily_trades": 500,
+        "max_daily_loss_usdt": 50.0,
+        "max_concurrent_positions": 1,
+        "max_consecutive_losses": 999,
+        "consecutive_loss_cooldown_min": 0,
+        "obi_consistency_check": false,
+        "consecutive_wins_to_restore": 1,
+        "_comment": "繼承 v4: 寬鬆風控，允許頻繁交易"
+    },
+
+    "early_exit": {
+        "early_stop_grace_sec": 5.0,
+        "noise_stop_sigma": 2.0
+    },
+
+    "whale_detection": {
+        "whale_alert_threshold_usdt": 100000,
+        "whale_emergency_threshold_usdt": 500000,
+        "price_spike_enabled": true,
+        "price_spike_threshold_pct": 0.50
+    },
+
+    "dynamic_profit": {
+        "dynamic_profit_enabled": false,
+        "smart_exit_gross_target": 3.0,
+        "smart_exit_net_target": 2.5,
+        "quick_profit_time_limit": 30.0,
+        "no_momentum_enabled": false,
+        "no_momentum_check_after_min": 5.0,
+        "no_momentum_min_profit": 1.0,
+        "no_momentum_loss_trigger": -0.2
+    },
+
+    "two_phase_exit": {
+        "two_phase_exit_enabled": false,
+        "phase1_fee_threshold_pct": 0.0,
+        "phase1_strict_stop_loss_pct": 0.3,
+        "phase1_target_pct": 1.0,
+        "phase2_trailing_start_pct": 1.0,
+        "phase2_trailing_offset_pct": 0.5,
+        "phase2_max_target_pct": 5.0
+    },
+
+    "gpt_system": {
+        "gpt_optimization_enabled": false,
+        "gpt_trade_filter_enabled": false
+    },
+
+    "chase_protection": {
+        "enabled": false,
+        "same_direction_cooldown_sec": 10,
+        "max_consecutive_same_direction": 10,
+        "price_move_block_pct": 2.0,
+        "score_decay_block_enabled": false,
+        "description": "繼承 v4: 🎲 關閉追單保護 - 允許頻繁進場"
+    },
+
+    "early_exit_v2": {
+        "enabled": true,
+        "profit_drawdown_threshold": 0.50,
+        "min_profit_for_drawdown_check": 2.5,
+        "stall_time_threshold_sec": 60.0,
+        "quick_reversal_drop_pct": 1.5,
+        "grace_period_sec": 5.0,
+        "six_dim_enabled": false,
+        "opposite_score_increase_threshold": 10.0,
+        "score_gap_narrowing_threshold": 5.0,
+        "description": "繼承 v4: 🛡️ 獲利回撤50%時考慮出場"
+    },
+
+    "auto_backtest_integration": {
+        "enabled": true,
+        "trigger_on_cumulative_loss_pct": 25.0,
+        "trigger_on_consecutive_losses": 5,
+        "trigger_every_hours": 24,
+        "auto_generate_new_config": true,
+        "pause_real_on_trigger": true,
+        "keep_paper_on_trigger": true,
+        "description": "🔄 v5 專屬：自動回測並生成新的 auto_optimized 配置"
+    },
+
+    "v5_specific": {
+        "base": "random_entry_smart_exit_v4",
+        "feature": "v4 + Auto-Optimized Integration",
+        "description": "📊 v5 = v4 核心策略 + 自動優化能力",
+        "inherited_from_v4": [
+            "🎲 隨機進場模式 (random_entry_mode: true)",
+            "💪 50X 高槓桿",
+            "📈 止盈 2.5% / 止損 0.75% (風報比 1:3.3)",
+            "🔒 中間數 70% 鎖利",
+            "⚡ 高頻交易 (min_trade_interval: 5秒)"
+        ],
+        "v5_additions": [
+            "🔄 auto_optimize: 自動讀取最新 auto_optimized 配置",
+            "📊 auto_backtest: 觸發條件時自動回測分析",
+            "🎯 direction_filter: 根據 LONG/SHORT 勝率自動切換方向"
+        ],
+        "what_auto_optimize_can_change": {
+            "allowed_directions": "根據回測結果切換 LONG only / SHORT only / BOTH",
+            "six_dim_min_score": "若需要，可動態調整信號門檻",
+            "stop_loss_pct": "根據歷史最大回撤微調",
+            "take_profit_pct": "根據歷史獲利交易微調"
+        },
+        "observation_metrics": [
+            "1️⃣ 勝率: 目標 > 50% (v4 風報比需 >23% 打平)",
+            "2️⃣ 淨營收: 扣除手續費後獲利",
+            "3️⃣ auto_optimize 調整: 觀察系統是否正確識別趨勢"
+        ]
+    }
+}

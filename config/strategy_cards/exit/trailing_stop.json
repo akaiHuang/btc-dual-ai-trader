@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "card_id": "trailing_stop",
+    "card_type": "exit",
+    "name": "📈 追蹤止盈",
+    "description": "獲利時追蹤最高點，回撤一定比例時出場",
+    "best_for": ["趨勢市場", "大波動"],
+    "historical_win_rate": "55%",
+    "avg_profit_pct": "+4.2%"
+  },
+  
+  "parameters": {
+    "lock_profit_enabled": false,
+    
+    "trailing_stop_enabled": true,
+    "trailing_start_pct": 2.0,
+    "trailing_offset_pct": 1.5,
+    
+    "stop_loss_pct": 3.0,
+    "take_profit_pct": 10.0,
+    "max_hold_min": 120.0,
+    
+    "two_phase_exit_enabled": true,
+    "phase1_strict_stop_loss_pct": 2.0,
+    "phase1_target_pct": 2.0,
+    "phase2_trailing_start_pct": 4.0,
+    "phase2_trailing_offset_pct": 2.0
+  },
+  
+  "exit_rules": {
+    "trailing_trigger": "獲利 ≥ trailing_start_pct 時開始追蹤",
+    "trailing_exit": "從最高點回撤 trailing_offset_pct 時出場",
+    "stop_loss": "虧損達 stop_loss_pct 時強制止損",
+    "take_profit": "獲利達 take_profit_pct 時止盈"
+  }
+}

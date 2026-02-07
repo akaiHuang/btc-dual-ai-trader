@@ -1,0 +1,62 @@
+{
+  "version": "5.0",
+  "description": "OBI 一致性過濾器設定 - 基於數據分析",
+  
+  "analysis_summary": {
+    "total_trades_analyzed": 23,
+    "obi_match_win_rate": "73%",
+    "obi_mismatch_win_rate": "25%",
+    "conclusion": "OBI與方向一致性是判斷主力是否騙人的重要指標"
+  },
+  
+  "filter_rules": {
+    "obi_mismatch_threshold": 0.3,
+    "obi_mismatch_threshold_description": "OBI與方向不一致的容忍度，超過此值則SKIP",
+    
+    "obi_too_high_threshold": 0.6,
+    "obi_too_high_threshold_description": "吸籌時OBI過高可能是誘多陷阱"
+  },
+  
+  "strategy_rules": {
+    "ACCUMULATION_LONG": {
+      "obi_min": -0.3,
+      "obi_max": 0.6,
+      "description": "吸籌做多: OBI需在 -0.3 到 0.6 之間"
+    },
+    "DISTRIBUTION_SHORT": {
+      "obi_max": 0.3,
+      "description": "派發做空: OBI需 < 0.3"
+    }
+  },
+  
+  "failure_patterns": [
+    {
+      "pattern": "吸籌做多但OBI負向 < -0.3",
+      "example": "OBI=-0.415, 虧損=-15.24 USDT",
+      "action": "SKIP"
+    },
+    {
+      "pattern": "派發做空但OBI正向 > 0.3",
+      "example": "OBI=0.694, 虧損=-14.19 USDT",
+      "action": "SKIP"
+    },
+    {
+      "pattern": "吸籌做多但OBI過高 > 0.6",
+      "example": "OBI=0.728, 虧損=-14.33 USDT (誘多)",
+      "action": "SKIP"
+    }
+  ],
+  
+  "success_patterns": [
+    {
+      "pattern": "吸籌做多且OBI適中 (0 到 0.5)",
+      "example": "OBI=0.270, 獲利=+5.95 USDT",
+      "action": "LONG"
+    },
+    {
+      "pattern": "派發做空且OBI負向",
+      "example": "OBI=-0.616, 獲利=+5.96 USDT",
+      "action": "SHORT"
+    }
+  ]
+}

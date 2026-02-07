@@ -1,0 +1,26 @@
+{
+  "_comment": "根據市場結構自動生成的動態交易參數",
+  "_generated": "2025-12-08T18:48:58.833667",
+  "market_state": {
+    "price": 92157.4,
+    "rsi": 66.0,
+    "change_6h_pct": 1.074,
+    "change_1h_pct": 0.311
+  },
+  "recommended_params": {
+    "min_hold_seconds": 730,
+    "optimal_hold_minutes": 12.2,
+    "target_net_profit_pct": 0.1,
+    "target_gross_profit_pct": 4.1,
+    "price_move_target_pct": 0.041,
+    "stop_loss_pct": 5.0
+  },
+  "market_analysis": {
+    "avg_trend_cycle_minutes": 23.8,
+    "avg_trend_magnitude_pct": 0.1703
+  },
+  "adjustment_factors": {
+    "rsi_factor": 0.85,
+    "volatility_factor": 1.0
+  }
+}

@@ -1,0 +1,209 @@
+{
+  "_version": "v10.8",
+  "_updated": "2025-12-04",
+  "_description": "混合策略 - 鯨魚優先 + MTF過濾 + 穩定性過濾 + 主力確認 + CTX 備用",
+  
+  "whale_strategy": {
+    "_comment": "v10.7 鯨魚策略 - 大單偵測 + 穩定性過濾 + 主力模式確認",
+    "enabled": true,
+    "priority": "whale_first",
+    "big_trade_threshold": 10000,
+    "direction_match_required": true,
+    "min_whale_count": 2,
+    "time_window_sec": 30,
+    "stability_filter": {
+      "_comment": "v10.7 穩定性過濾 - 防止追入快速反轉信號",
+      "enabled": true,
+      "min_stable_seconds": 10,
+      "max_direction_changes": 1,
+      "direction_check_window_sec": 30,
+      "anti_chase": {
+        "_comment": "防追單 - 價格已移動太多則拒絕",
+        "enabled": true,
+        "max_price_move_pct": 0.08,
+        "check_window_sec": 15,
+        "max_price_move_1m_pct": 0.3
+      }
+    },
+    "strategy_confirmation": {
+      "_comment": "主力模式確認 - 提升信號品質",
+      "required": false,
+      "bonus_pct": 20
+    },
+    "profit_lock": {
+      "_comment": "鯨魚專屬鎖利 - 達到目標價即平倉",
+      "enabled": true,
+      "initial_lock_pct": 0.05,
+      "trailing_pct": 0.03,
+      "update_interval_sec": 1
+    },
+    "expected_price": {
+      "_comment": "基於鯨魚訂單量預估目標價格",
+      "calculate_from_size": true,
+      "use_sqrt_model": true,
+      "price_impact_per_10k": 0.01,
+      "min_target_pct": 0.03,
+      "max_target_pct": 0.15,
+      "max_target_with_strategy": 0.20,
+      "conservative_factor": 0.6
+    },
+    "mtf_filter": {
+      "_comment": "v10.8 MTF 過濾 - 防止逆大趨勢交易",
+      "enabled": true,
+      "bullish_threshold": 55,
+      "bearish_threshold": 45
+    }
+  },
+  
+  "obi_thresholds": {
+    "_comment": "OBI (Order Book Imbalance) 門檻設定",
+    "very_high": 0.7,
+    "high": 0.5,
+    "mode_a_min": 0.4,
+    "neutral_min": -0.3,
+    "neutral_max": 0.0,
+    "low": -0.3
+  },
+  
+  "price_change_thresholds": {
+    "_comment": "價格變化門檻 (1分鐘)",
+    "drop_min": -0.05,
+    "drop_max": 0.0,
+    "stable_range": 0.03,
+    "momentum_min": 0.02
+  },
+  
+  "probability_thresholds": {
+    "_comment": "策略機率門檻",
+    "mode_c_min": 0.80,
+    "mode_c_max": 0.90,
+    "low": 0.85,
+    "danger": 0.90,
+    "very_high": 0.98
+  },
+  
+  "mtf_filter": {
+    "_comment": "v10.4 多時間框架過濾 - 避免逆勢交易",
+    "enabled": true,
+    "rsi_1h": {
+      "_comment": "1小時 RSI 過濾",
+      "bullish_threshold": 55,
+      "bearish_threshold": 45,
+      "block_short_when_bullish": true,
+      "block_long_when_bearish": true
+    },
+    "rsi_4h": {
+      "_comment": "4小時 RSI 過濾 (超買超賣)",
+      "overbought": 75,
+      "oversold": 25,
+      "warn_only": true
+    }
+  },
+  
+  "momentum_filter": {
+    "_comment": "v10.5 動能過濾 - 提升交易品質",
+    "enabled": true,
+    "long_conditions": {
+      "_comment": "做多條件強化",
+      "require_5m_upward": true,
+      "min_rsi_15m": 40,
+      "max_volatility_5m": 0.1,
+      "price_momentum_min": 0.02
+    },
+    "short_conditions": {
+      "_comment": "做空條件強化",
+      "require_5m_downward": true,
+      "max_rsi_15m": 60,
+      "max_volatility_5m": 0.1,
+      "price_momentum_min": 0.02
+    },
+    "confidence_threshold": 0.65
+  },
+  
+  "reverse_rules": {
+    "_comment": "反向交易規則",
+    "enabled": true,
+    "respect_mtf": true,
+    "momentum_required": true,
+    "to_short": {
+      "_comment": "反向→SHORT 條件 (滿足任一即可反向)",
+      "allow_when_prob_under_98": true,
+      "allow_when_obi_negative": true,
+      "allow_when_price_rising": true
+    },
+    "to_long": {
+      "_comment": "反向→LONG 條件",
+      "require_obi_negative": true
+    }
+  },
+  
+  "profit_modes": {
+    "_comment": "專屬獲利模式開關",
+    "mode_a": {
+      "enabled": true,
+      "name": "逆勢抄底",
+      "win_rate": "83.3%",
+      "conditions": "OBI > mode_a_min + 價格微跌 + LONG",
+      "momentum_required": false
+    },
+    "mode_c": {
+      "enabled": true,
+      "name": "中性精準空",
+      "win_rate": "100%",
+      "conditions": "OBI中性 + SHORT + 機率80-90%",
+      "momentum_required": true
+    },
+    "obi_high_low_prob": {
+      "enabled": true,
+      "name": "OBI高+低機率",
+      "win_rate": "100%",
+      "conditions": "OBI > high + LONG + 機率 < 85% + 價格跌",
+      "require_price_falling": true,
+      "momentum_required": true
+    },
+    "obi_very_high_stable": {
+      "enabled": true,
+      "name": "OBI極高+穩定",
+      "win_rate": "100%",
+      "conditions": "OBI > very_high + SHORT + 價格穩定",
+      "momentum_required": true
+    }
+  },
+  
+  "forbidden_rules": {
+    "_comment": "絕對禁止規則 (0% 勝率)",
+    "obi_low_long": {
+      "enabled": true,
+      "description": "OBI < low + LONG → 拒絕"
+    },
+    "reverse_long_obi_low": {
+      "enabled": true,
+      "description": "反向→LONG + OBI < low → 拒絕"
+    },
+    "no_momentum_trade": {
+      "_comment": "v10.5: 無動能交易禁止",
+      "enabled": true,
+      "description": "價格動能不足 + 任何方向 → 拒絕"
+    }
+  },
+  
+  "signal_confirmation": {
+    "_comment": "信號確認設定",
+    "required_confirmations": 2,
+    "confirmation_window_sec": 5,
+    "momentum_check": true
+  },
+  
+  "dynamic_exit": {
+    "_comment": "v10.5: 動態出場優化",
+    "enabled": true,
+    "volatility_adjusted_sl": true,
+    "max_hold_time_volatile": 10.0,
+    "early_exit_threshold": -0.05
+  },
+  
+  "experimental": {
+    "_comment": "實驗性反轉規則 (待驗證)",
+    "enabled": false
+  }
+}

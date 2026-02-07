@@ -1,0 +1,49 @@
+{
+  "_meta": {
+    "card_id": "whale_follow",
+    "card_type": "entry",
+    "name": "🐋 跟隨鯨魚",
+    "description": "只在檢測到大單時進場，跟隨主力方向",
+    "best_for": ["鯨魚活躍", "大波動"],
+    "win_rate_target": "65%+",
+    "trade_frequency": "低 (每天 3-8 筆)"
+  },
+  
+  "parameters": {
+    "six_dim_enabled": true,
+    "six_dim_min_score_to_trade": 6,
+    "six_dim_alignment_threshold": 5,
+    
+    "min_probability": 0.60,
+    "min_confidence": 0.55,
+    "signal_confirm_seconds": 2,
+    "min_signal_advantage": 0.15,
+    
+    "price_confirm_enabled": true,
+    "price_confirm_threshold": 0.02,
+    
+    "obi_long_threshold": 0.12,
+    "obi_short_threshold": -0.12,
+    "obi_consistency_check": true,
+    
+    "require_momentum_confirm": true,
+    "momentum_long_threshold": 0.03,
+    "momentum_short_threshold": -0.03,
+    
+    "volume_long_threshold": 1.20,
+    "volume_short_threshold": 0.80,
+    
+    "whale_alert_threshold_usdt": 80000,
+    "whale_follow_enabled": true,
+    "min_whale_trades": 3,
+    "whale_window_sec": 60,
+    
+    "warmup_seconds": 30.0
+  },
+  
+  "veto_rules": {
+    "score_too_low": "六維分數 < 6",
+    "no_whale_activity": "無大單活動",
+    "whale_direction_conflict": "大單方向與信號衝突"
+  }
+}

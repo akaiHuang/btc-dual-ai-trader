@@ -1,0 +1,410 @@
+{
+  "_comment": "動態策略配置 - 支援熱更新（修改後自動生效，無需重啟）",
+  "_version": "1.0",
+  "_last_updated": "2025-01-18T22:00:00Z",
+  "modes": {
+    "M0_ULTRA_SAFE": {
+      "enabled": true,
+      "type": "BASELINE",
+      "description": "M0 Ultra Safe - 超保守基準線",
+      "emoji": "🛡️M0",
+      "leverage": 10,
+      "position_size": 0.5,
+      "tp_pct": 1.0,
+      "sl_pct": 0.8,
+      "entry_cooldown_seconds": 120,
+      "max_positions_per_day": 30,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {
+        "rsi": {
+          "min": 30,
+          "max": 70
+        },
+        "obi": {
+          "min_abs": 0.05
+        },
+        "volume_factor": 0.8
+      },
+      "signal_weights": {
+        "obi": 0.5,
+        "funding": 0.3,
+        "whale": 0.2
+      },
+      "min_direction_score": 0.25
+    },
+    "M1_SAFE_PRIME": {
+      "enabled": true,
+      "type": "SAFE",
+      "description": "M1′ Trend Sniper - 趨勢狙擊手",
+      "emoji": "🥷M1′",
+      "leverage": 12,
+      "position_size": 0.5,
+      "tp_pct": 1.2,
+      "sl_pct": 1.0,
+      "entry_cooldown_seconds": 75,
+      "max_positions_per_day": 35,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "required_trend_states": [
+        "STRONG_UP",
+        "STRONG_DOWN",
+        "LEAN_UP",
+        "LEAN_DOWN"
+      ],
+      "entry_rules": {
+        "rsi": {
+          "min": 40,
+          "max": 70
+        },
+        "obi": {
+          "min_abs": 0.06
+        },
+        "volume_factor": 1.0,
+        "whale_min_concentration": 0.6
+      },
+      "signal_weights": {
+        "obi": 0.35,
+        "funding": 0.35,
+        "whale": 0.3
+      },
+      "min_direction_score": 0.25
+    },
+    "M2_NORMAL_PRIME": {
+      "enabled": true,
+      "type": "NORMAL",
+      "description": "M2′ Scalper Sniper - 極速剝頭皮",
+      "emoji": "⚡M2′",
+      "leverage": 6,
+      "position_size": 0.6,
+      "tp_pct": 0.96,
+      "sl_pct": 0.6,
+      "entry_cooldown_seconds": 30,
+      "max_positions_per_day": 60,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "required_trend_states": [],
+      "entry_rules": {
+        "rsi": {
+          "min": 30,
+          "max": 80
+        },
+        "obi": {
+          "min_abs": 0.02
+        },
+        "volume_factor": 0.5
+      },
+      "signal_weights": {
+        "obi": 0.6,
+        "funding": 0.1,
+        "whale": 0.3
+      },
+      "min_direction_score": 0.15,
+      "bias_direction": "LONG",
+      "bias_confidence": 0.8541
+    },
+    "M_FISH_MARKET_MAKER": {
+      "enabled": true,
+      "type": "AGGRESSIVE",
+      "description": "M🐟 Fish Market Maker - 死魚盤網格造市",
+      "emoji": "🐟M",
+      "leverage": 15,
+      "position_size": 0.4,
+      "tp_pct": 1.5,
+      "sl_pct": 1.2,
+      "entry_cooldown_seconds": 15,
+      "max_positions_per_day": 80,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {
+        "rsi": {
+          "min": 15,
+          "max": 85
+        },
+        "volume_factor": 0.5,
+        "dead_market": {
+          "enabled": true,
+          "atr_threshold_pct": 0.05,
+          "grid_buy_level": 0.2,
+          "grid_sell_level": 0.8,
+          "maker_fee_enabled": true
+        }
+      },
+      "signal_weights": {
+        "obi": 0.7,
+        "funding": 0.1,
+        "whale": 0.2
+      },
+      "min_direction_score": 0.15
+    },
+    "M6_SIGNAL_SANDBOX": {
+      "enabled": true,
+      "type": "SANDBOX",
+      "description": "M6 Sandbox - 反向指標模式 (利用 OBI 陷阱)",
+      "emoji": "🧪M6",
+      "invert_signal": true,
+      "leverage": 8,
+      "position_size": 0.3,
+      "tp_pct": 1.0,
+      "sl_pct": 0.5,
+      "entry_cooldown_seconds": 60,
+      "max_positions_per_day": 25,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {
+        "rsi": {
+          "min": 30,
+          "max": 70
+        },
+        "obi": {
+          "min_abs": 0.15
+        }
+      },
+      "signal_weights": {
+        "obi": 0.6,
+        "funding": 0.2,
+        "whale": 0.2
+      },
+      "min_direction_score": 0.4
+    },
+    "M7_BREAKOUT_SNIPER": {
+      "enabled": true,
+      "type": "SNIPER_BREAKOUT",
+      "description": "M7 Breakout Sniper - 突破狙擊手",
+      "emoji": "🤖M7",
+      "leverage": 6,
+      "position_size": 0.6,
+      "tp_pct": 1.8,
+      "sl_pct": 1.0,
+      "entry_cooldown_seconds": 2700,
+      "max_positions_per_day": 15,
+      "regime_whitelist": [
+        "BULL",
+        "BEAR"
+      ],
+      "regime_blacklist": [],
+      "required_trend_states": [
+        "STRONG_UP",
+        "STRONG_DOWN",
+        "LEAN_UP",
+        "LEAN_DOWN"
+      ],
+      "entry_rules": {
+        "whale_min_concentration": 0.55
+      },
+      "min_direction_score": 0.35,
+      "bias_direction": "LONG",
+      "bias_confidence": 0.8541
+    },
+    "M8_VOLUME_SNIPER": {
+      "enabled": true,
+      "type": "SNIPER_VOLUME",
+      "description": "M8 Volume Sniper - 量能狙擊手 (Offensive)",
+      "emoji": "🤖M8",
+      "leverage": 14,
+      "position_size": 0.5,
+      "tp_pct": 1.8,
+      "sl_pct": 1.2,
+      "entry_cooldown_seconds": 300,
+      "max_positions_per_day": 20,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {
+        "volume_zscore": 1.5,
+        "funding_zscore_min": 0.1,
+        "signal_score_min": 0.2
+      },
+      "signal_weights": {
+        "volume": 0.8,
+        "obi": 0.2,
+        "funding": 0.0
+      },
+      "min_direction_score": 0.25
+    },
+    "M9_VOLATILITY_SNIPER": {
+      "enabled": true,
+      "type": "SNIPER_VOLATILITY",
+      "description": "M9 Volatility Sniper - 波動狙擊手",
+      "emoji": "🤖M9",
+      "leverage": 16,
+      "position_size": 0.45,
+      "tp_pct": 1.8,
+      "sl_pct": 1.1,
+      "entry_cooldown_seconds": 1200,
+      "max_positions_per_day": 25,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {
+        "whale_min_concentration": 0.4
+      },
+      "min_direction_score": 0.3
+    },
+    "_M_MICRO1_1m": {
+      "_comment": "以下為 M_MICRO 系列範例（目前停用，待 Phase 5 實作完成後啟用）",
+      "enabled": false,
+      "type": "MICRO1",
+      "description": "M_MICRO1 1m - 順勢微利 1分鐘",
+      "timeframe": "1m",
+      "leverage": 8,
+      "position_size": 0.3,
+      "tp_pct": 0.5,
+      "sl_pct": 0.5,
+      "entry_cooldown_seconds": 60,
+      "max_positions_per_day": 60,
+      "regime_whitelist": [
+        "BULL",
+        "BEAR"
+      ],
+      "regime_blacklist": [
+        "CONSOLIDATION"
+      ],
+      "required_trend_states": [
+        "STRONG_UP",
+        "STRONG_DOWN",
+        "LEAN_UP",
+        "LEAN_DOWN"
+      ],
+      "ma_fast": 5,
+      "ma_slow": 10,
+      "rsi_period": 14,
+      "rsi_long_lower": 40,
+      "rsi_long_upper": 70,
+      "rsi_short_lower": 30,
+      "rsi_short_upper": 60,
+      "volume_ma_period": 20,
+      "volume_factor": 1.1,
+      "whale_min_concentration": 0.65,
+      "whale_min_net_volume": 10.0
+    },
+    "M_WHALE_WATCHER": {
+      "enabled": true,
+      "type": "SNIPER",
+      "description": "M🐳 Whale Watcher - 大單跟單模式（含防刷單機制）",
+      "emoji": "🐳M",
+      "leverage": 10,
+      "position_size": 0.5,
+      "tp_pct": 3.0,
+      "sl_pct": 1.5,
+      "entry_cooldown_seconds": 60,
+      "max_positions_per_day": 50,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {
+        "ignore_consolidation": "AUTO",
+        "whale_dominance": {
+          "min": 0.6,
+          "min_churn": 0.7,
+          "ultra_burst_min": 0.9,
+          "min_count": 3,
+          "min_total_qty": 3.0,
+          "price_confirmation_pct": 0.025,
+          "price_momentum_min_pct": 0.015
+        },
+        "obi": {
+          "min_long": -0.25,
+          "max_short": 0.25
+        },
+        "vpin": {
+          "max": 0.85
+        },
+        "anti_churn": {
+          "enabled": true,
+          "max_reversals_30min": 2,
+          "penalty_cooldown_minutes": [
+            2,
+            5,
+            10,
+            20
+          ],
+          "persistence_windows": 3,
+          "persistence_min_consistent": 2,
+          "atr_min_pct": 0.15,
+          "price_range_min_pct": 0.3,
+          "bb_width_min_pct": 0.4,
+          "volatility_hard_floor_pct": 0.035
+        }
+      },
+      "exit_rules": {
+        "whale_dominance": {
+          "max": 0.6
+        },
+        "whale_flip": {
+          "enabled": true
+        }
+      },
+      "whale_flip_prediction": {
+        "enabled": true,
+        "warning_threshold_dominance": 0.65,
+        "reversal_sensitivity": 0.4,
+        "high_impact_thresholds": {
+          "net_qty": 10.0,
+          "dominance": 0.8,
+          "obi_confluence": 0.2
+        }
+      }
+    },
+    "M_LP_WHALE_BURST": {
+      "enabled": true,
+      "type": "SNIPER_LP_WHALE",
+      "description": "M🥊 Liquidation + Whale Burst - 爆倉壓力結合鯨魚爆擊模式",
+      "emoji": "M🥊",
+      "leverage": 20,
+      "max_dynamic_leverage": 125,
+      "position_size": 0.7,
+      "tp_pct": 3.0,
+      "sl_pct": 1.3,
+      "entry_cooldown_seconds": 3600,
+      "max_positions_per_day": 8,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {
+        "L_long_liq_min": 65,
+        "L_short_liq_min": 65,
+        "liq_diff_min": 20,
+        "whale_dominance_min": 0.6,
+        "obi_long_min": 0.1,
+        "obi_short_max": -0.1
+      },
+      "signal_weights": {
+        "liquidation": 0.5,
+        "whale": 0.4,
+        "obi": 0.1
+      },
+      "min_direction_score": 0.4
+    },
+    "MUP_DIRECTIONAL_LONG": {
+      "enabled": true,
+      "type": "BIAS_PROBE_LONG",
+      "description": "Mup - 自動做多區間偏向偵測",
+      "emoji": "🟢Mup",
+      "leverage": 5,
+      "position_size": 0.4,
+      "tp_pct": 1.2,
+      "sl_pct": 0.9,
+      "entry_cooldown_seconds": 10,
+      "max_positions_per_day": 400,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {},
+      "signal_weights": {},
+      "min_direction_score": 0.0
+    },
+    "MDOWN_DIRECTIONAL_SHORT": {
+      "enabled": true,
+      "type": "BIAS_PROBE_SHORT",
+      "description": "Mdown - 自動做空區間偏向偵測",
+      "emoji": "🔴Mdown",
+      "leverage": 5,
+      "position_size": 0.4,
+      "tp_pct": 1.2,
+      "sl_pct": 0.9,
+      "entry_cooldown_seconds": 10,
+      "max_positions_per_day": 400,
+      "regime_whitelist": [],
+      "regime_blacklist": [],
+      "entry_rules": {},
+      "signal_weights": {},
+      "min_direction_score": 0.0
+    }
+  }
+}

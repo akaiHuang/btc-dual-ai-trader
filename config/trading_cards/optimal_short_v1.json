@@ -1,0 +1,221 @@
+{
+    "_meta": {
+        "card_id": "optimal_short_v1",
+        "card_name": "🎯 數據優化雙向卡 v1",
+        "description": "基於 48h 回測數據優化的最佳策略卡 - 多空雙向 + OBI 中性 + 長持倉",
+        "version": "1.1",
+        "created_at": "2025-12-17",
+        "market_condition": "震盪市場",
+        "risk_level": "medium",
+        "expected_win_rate": 0.60,
+        "tags": ["optimized", "data-driven", "bidirectional", "hold-longer"],
+        "backtest_result": {
+            "sample_trades": 68,
+            "win_rate": "67.6%",
+            "total_pnl": "+90.08%",
+            "avg_pnl": "+1.325%"
+        }
+    },
+
+    "_extends": "base_default",
+    
+    "_notes": {
+        "key_findings": [
+            "SHORT 勝率 33.2% vs LONG 25.1%",
+            "OBI 中性 + SHORT 勝率 33.7%",
+            "持倉 10-30s 勝率最高 45.8%",
+            "持倉 30-60s 勝率 56.0%",
+            "持倉 < 5s 勝率僅 8.2% (致命!)",
+            "OBI 中性 + SHORT + 持倉 ≥ 10s = 67.6% 勝率"
+        ],
+        "optimization_target": "避免快進快出 (< 5s)，延長持倉時間"
+    },
+
+    "basic": {
+        "symbol": "BTC/USDT",
+        "leverage": 50,
+        "leverage_min": 40,
+        "leverage_max": 50,
+        "position_size_usdt": 100.0
+    },
+
+    "trading_mode": {
+        "paper_mode": true,
+        "reverse_mode": false,
+        "contextual_mode": true,
+        "strategy_card_enabled": true
+    },
+
+    "pre_entry": {
+        "pre_entry_mode": true,
+        "pre_entry_threshold": 0.85,
+        "pre_entry_cancel_threshold": 0.60,
+        "pre_entry_timeout_sec": 90.0,
+        "pre_entry_price_offset": 10.0
+    },
+
+    "targets_and_stops": {
+        "target_profit_pct": 0.80,
+        "target_profit_min_pct": 0.50,
+        "target_profit_max_pct": 1.20,
+        "stop_loss_pct": 0.30,
+        "stop_loss_min_pct": 0.20,
+        "stop_loss_max_pct": 0.40,
+        "max_hold_minutes": 60.0,
+        "max_hold_min_minutes": 30.0,
+        "max_hold_max_minutes": 120.0
+    },
+
+    "profit_lock": {
+        "use_n_lock_n": true,
+        "n_lock_n_threshold": 0.8,
+        "n_lock_n_buffer": 0.2,
+        "profit_lock_stages": [
+            [-999.0, -1.0, -1.0],
+            [-1.0,   0.0,  -1.0],
+            [0.0,    0.5,  -1.5],
+            [0.5,    1.0,  -0.5],
+            [1.0,    1.5,   0.0],
+            [1.5,    2.0,   0.5],
+            [2.0,    3.0,   1.0],
+            [3.0,    5.0,   2.0],
+            [5.0,    999.0, 3.5]
+        ]
+    },
+
+    "signal_quality": {
+        "min_probability": 0.55,
+        "min_confidence": 0.35,
+        "signal_confirm_seconds": 5,
+        "min_signal_advantage": 0.15
+    },
+
+    "six_dim_system": {
+        "six_dim_enabled": true,
+        "six_dim_alignment_threshold": 8,
+        "six_dim_min_score_to_trade": 9,
+        "warmup_seconds": 60.0,
+        "require_momentum_confirm": true,
+        "allowed_directions": ["SHORT", "LONG"]
+    },
+
+    "price_confirm": {
+        "price_confirm_enabled": true,
+        "price_confirm_threshold": 0.02
+    },
+
+    "obi_line": {
+        "obi_line_weight": 2,
+        "obi_long_threshold": 0.08,
+        "obi_short_threshold": -0.08,
+        "obi_strong_threshold": 0.20
+    },
+
+    "momentum_line": {
+        "momentum_line_weight": 2,
+        "momentum_long_threshold": 0.015,
+        "momentum_short_threshold": -0.015,
+        "momentum_strong_threshold": 0.08
+    },
+
+    "volume_line": {
+        "volume_line_weight": 2,
+        "volume_long_threshold": 1.05,
+        "volume_short_threshold": 0.97,
+        "volume_strong_threshold": 1.20
+    },
+
+    "analysis_frequency": {
+        "ws_interval_sec": 1.0,
+        "analysis_interval_sec": 10.0,
+        "min_trade_interval_sec": 60.0
+    },
+
+    "risk_control": {
+        "max_daily_trades": 10,
+        "max_daily_loss_usdt": 200.0,
+        "max_concurrent_positions": 1,
+        "max_consecutive_losses": 3,
+        "consecutive_loss_cooldown_min": 15,
+        "obi_consistency_check": true,
+        "consecutive_wins_to_restore": 2
+    },
+
+    "early_exit": {
+        "early_stop_grace_sec": 10.0,
+        "noise_stop_sigma": 2.5
+    },
+
+    "whale_detection": {
+        "whale_alert_threshold_usdt": 100000,
+        "whale_emergency_threshold_usdt": 500000,
+        "price_spike_enabled": true,
+        "price_spike_threshold_pct": 0.30
+    },
+
+    "dynamic_profit": {
+        "dynamic_profit_enabled": true,
+        "smart_exit_gross_target": 4.0,
+        "smart_exit_net_target": 2.5,
+        "quick_profit_time_limit": 15.0,
+        "no_momentum_enabled": true,
+        "no_momentum_check_after_min": 5.0,
+        "no_momentum_min_profit": 1.5,
+        "no_momentum_loss_trigger": -3.0
+    },
+
+    "two_phase_exit": {
+        "two_phase_exit_enabled": true,
+        "phase1_fee_threshold_pct": 0.0,
+        "phase1_strict_stop_loss_pct": 1.5,
+        "phase1_target_pct": 1.5,
+        "phase2_trailing_start_pct": 3.0,
+        "phase2_trailing_offset_pct": 1.5,
+        "phase2_max_target_pct": 6.0
+    },
+
+    "spread_guard": {
+        "enabled": true,
+        "base_entry": 0.15,
+        "min_entry": 0.08,
+        "max_entry": 0.30,
+        "min_halt": 0.25,
+        "max_halt": 0.60,
+        "oracle_warn": 0.12,
+        "oracle_halt": 0.30,
+        "max_data_age_ms": 8000,
+        "escape_timeout_sec": 5.0,
+        "k_vol": 2.0,
+        "k_spread": 1.5,
+        "k_lat": 0.5,
+        "halt_mult": 2.5,
+        "description": "🛡️ v14.8 進階風控系統 - 動態Band+狀態機+三段式出場 (測試放寬)"
+    },
+
+    "gpt_system": {
+        "gpt_optimization_enabled": false,
+        "gpt_trade_filter_enabled": false
+    },
+
+    "chase_protection": {
+        "enabled": true,
+        "same_direction_cooldown_sec": 120,
+        "max_consecutive_same_direction": 2,
+        "price_move_block_pct": 1.0,
+        "score_decay_block_enabled": true,
+        "description": "🛡️ v13.8 追單保護 - 防止連續同向追單虧損"
+    },
+
+    "early_exit": {
+        "enabled": true,
+        "profit_drawdown_threshold": 0.50,
+        "min_profit_for_drawdown_check": 0.3,
+        "stall_time_threshold_sec": 15.0,
+        "quick_reversal_drop_pct": 0.5,
+        "grace_period_sec": 3.0,
+        "six_dim_enabled": true,
+        "opposite_score_increase_threshold": 2.0,
+        "score_gap_narrowing_threshold": 1.5,
+        "description": "🚨 v13.9.1 早期逃命 - 偵測微利後反轉信號 + 六維分數監控"
+    }
+}

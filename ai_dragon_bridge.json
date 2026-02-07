@@ -1,0 +1,114 @@
+{
+  "ai_to_dragon": {
+    "command": "HOLD",
+    "direction": "BEARISH",
+    "confidence": 60,
+    "cascade_aligned": false,
+    "reasoning": "Whales are net short and price below 87k keeps the bias bearish, yet the Claw says HOLD because no active cascade (0.0 strength) removes the momentum needed for a profitable short entry. No need to fight the tape, but no green light to press shorts either\u2014stay coiled until the next cascade trigger.",
+    "stop_loss_pct": 5.0,
+    "take_profit_pct": 10.0,
+    "leverage": 30,
+    "timestamp": "2025-11-27T00:14:15.442501"
+  },
+  "dragon_to_ai": {
+    "status": "IDLE",
+    "timestamp": "2025-12-02T17:24:58.373435",
+    "liquidation_cascade": {
+      "active": false,
+      "direction": "HOLD",
+      "strength": 0.0,
+      "alert_level": "NONE",
+      "recommended_action": "CONTINUE"
+    },
+    "whale_status": {
+      "current_direction": null,
+      "dominance": 0,
+      "flip_count_30min": 0,
+      "net_qty_btc": 0.0,
+      "last_flip_time": null
+    },
+    "whale_signal_effectiveness": {
+      "signal_quality": {
+        "score": 0,
+        "grade": "D",
+        "obi": 0.465,
+        "vpin": 0.8,
+        "factors_positive": 0,
+        "factors_warning": 0
+      },
+      "current_signal": null,
+      "is_signal_effective": false,
+      "price_impact_pct": 0,
+      "effectiveness_rate": 0,
+      "signal_strength": "NONE",
+      "recommendation": "NO_SIGNAL",
+      "quality_score": 0,
+      "quality_factors": [],
+      "warning_factors": [],
+      "avg_response_time": 0,
+      "recent_signals_summary": {
+        "total": 0,
+        "effective": 0,
+        "ineffective": 0
+      }
+    },
+    "market_microstructure": {
+      "obi": 0.465,
+      "vpin": 0.8,
+      "spread_bps": 0.01,
+      "funding_rate": 0,
+      "depth_imbalance": 0.43
+    },
+    "volatility": {
+      "atr_pct": 0,
+      "regime": "UNKNOWN",
+      "is_dead_market": false,
+      "bb_width_pct": 0
+    },
+    "position": null,
+    "entry_price": 0,
+    "current_pnl_usdt": 0,
+    "current_pnl_pct": 0,
+    "holding_seconds": 0,
+    "risk_indicators": {
+      "liquidation_pressure": 15,
+      "orderbook_toxicity": 0.8,
+      "whale_trap_probability": 0.3,
+      "cascade_risk": "LOW"
+    },
+    "direction_probes": {
+      "mup_pnl_usdt": 0.0,
+      "mdown_pnl_usdt": 0.0,
+      "mup_pnl_pct": 0.0,
+      "mdown_pnl_pct": 0.0,
+      "mup_holding_seconds": 0,
+      "mdown_holding_seconds": 0,
+      "market_direction": "NEUTRAL",
+      "direction_strength": 0.0,
+      "signal": "HOLD",
+      "data_reliability": "LOW",
+      "description": "\u26a0\ufe0f \u6578\u64da\u4e0d\u53ef\u9760\uff01Mup\u6301\u50090\u79d2, Mdown\u6301\u50090\u79d2 (\u9700>60\u79d2)"
+    }
+  },
+  "feedback_loop": {
+    "total_trades": 0,
+    "total_wins": 0,
+    "total_pnl": 0,
+    "win_rate": 0,
+    "consecutive_losses": 0,
+    "consecutive_wins": 0,
+    "last_trade_result": {}
+  },
+  "last_updated": "2025-12-02T17:24:58.373458",
+  "ai_to_dragon2": {
+    "command": "SHORT",
+    "direction": "BEARISH",
+    "confidence": 85,
+    "leverage": 3,
+    "whale_reversal_price": 86900,
+    "take_profit_pct": 10.0,
+    "stop_loss_pct": 5.0,
+    "reasoning": "Mandatory sanity check triggered: real-time whale net qty is negative (-12.77 BTC) so bullish bias is invalid. Align with fresh bearish grand strategy; enter short on any 1-min bounce toward 87.8-88.0",
+    "timestamp": "2025-11-26T15:47:04.916048"
+  }
+}

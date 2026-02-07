@@ -1,0 +1,160 @@
+{
+  "_comment": "🔧 策略同步統一配置 - 所有策略參數集中管理",
+  "_version": "1.5.0",
+  "_updated": "2025-11-27",
+  "_target": "8小時 13-15 筆交易，每筆 +7~10% ROI",
+  
+  "global_settings": {
+    "slippage_tolerance_bps": 30,
+    "enable_slippage_check": true,
+    "testnet_sync_interval_sec": 5,
+    "min_trade_interval_sec": 120,
+    "default_leverage": 75,
+    
+    "_comment_unified": "🆕 M🐺 = T🐺 完全統一模式",
+    "unified_mode": true,
+    "ai_data_source": "TESTNET_ONLY",
+    
+    "_comment_testnet": "🎯 完全同步模式：Testnet 100% 跟隨 Paper 平倉",
+    "testnet_independent_exit": false,
+    "testnet_min_profit_usdt": 7.0,
+    "testnet_min_profit_pct": 0.13,
+    "testnet_max_loss_usdt": 8.0,
+    "testnet_max_loss_pct": 0.08,
+    "testnet_fee_rate": 0.0005,
+    
+    "_comment_extreme_profit": "🎯 極端獲利強制止盈 (16% = 扣Taker費後淨利10%)",
+    "extreme_profit_exit_enabled": true,
+    "extreme_profit_pct": 16.0,
+    "extreme_profit_usdt": 16.0,
+    "extreme_profit_use_taker": true,
+    
+    "_comment_trailing": "🔧 v2.1: 關閉 WebSocket 追蹤止盈，完全由 Paper Trading 控制",
+    "trailing_stop_enabled": false,
+    "trailing_activation_pct": 10.0,
+    "trailing_distance_pct": 3.0,
+    
+    "_comment_websocket": "🔧 v2.1: 關閉 WebSocket 獨立止盈止損，完全同步 Paper Trading",
+    "websocket_instant_exit": false,
+    "websocket_feed_to_ai": true,
+    
+    "_comment_maker": "🏷️ 訂單模式 - 全 Taker，即時成交優先",
+    "maker_enabled": false,
+    "maker_timeout_seconds": 30,
+    "maker_offset_bps": 1.0,
+    "maker_fallback_to_taker": true,
+    "maker_skip_on_volatility": true,
+    "maker_for_entry": false,
+    "maker_for_exit": false
+  },
+  
+  "strategies": {
+    "M🐺": {
+      "name": "AI Sniper Hunter",
+      "emoji": "🐺",
+      "ai_advisor": "ai_trading_advisor_gpt.py",
+      "bridge_file": "ai_wolf_bridge.json",
+      "enabled": true,
+      "testnet_enabled": true,
+      "leverage": 75,
+      "tp_pct": 10.0,
+      "sl_pct": 3.5,
+      "min_holding_seconds": 60,
+      "max_holding_seconds": 1800,
+      "description": "🎯 精準狙擊 - 8h/15筆，每筆 +7~10% ROI"
+    },
+    
+    "M🐲": {
+      "name": "AI Dragon",
+      "emoji": "🐲",
+      "ai_advisor": "ai_trading_advisor_qwen.py",
+      "bridge_file": "ai_dragon_bridge.json",
+      "enabled": true,
+      "testnet_enabled": false,
+      "leverage": 10,
+      "tp_pct": 5.0,
+      "sl_pct": 3.0,
+      "min_holding_seconds": 120,
+      "description": "Qwen3 控制的 AI Dragon 策略"
+    },
+    
+    "M🐲2": {
+      "name": "Dragon V2",
+      "emoji": "🐲2",
+      "ai_advisor": "ai_trading_advisor_dragon2.py",
+      "bridge_file": "ai_dragon2_bridge.json",
+      "enabled": true,
+      "testnet_enabled": false,
+      "leverage": 50,
+      "tp_pct": 3.0,
+      "sl_pct": 2.0,
+      "min_holding_seconds": 60,
+      "description": "改良版 Dragon - 鯨魚過濾+縮短持倉"
+    },
+    
+    "M🦁": {
+      "name": "AI Lion",
+      "emoji": "🦁",
+      "ai_advisor": "ai_trading_advisor_lion.py",
+      "bridge_file": "ai_lion_bridge.json",
+      "enabled": true,
+      "testnet_enabled": false,
+      "leverage": 50,
+      "tp_pct": 3.0,
+      "sl_pct": 2.0,
+      "min_holding_seconds": 120,
+      "description": "GPT + v2.0 Whale Strategy Detector Enhanced"
+    },
+    
+    "M🦐": {
+      "name": "AI Shrimp",
+      "emoji": "🦐",
+      "ai_advisor": "ai_trading_advisor_gpt.py",
+      "bridge_file": "ai_shrimp_config.json",
+      "enabled": true,
+      "testnet_enabled": false,
+      "leverage": 25,
+      "tp_pct": 5.0,
+      "sl_pct": 2.0,
+      "min_holding_seconds": 120,
+      "description": "GPT 控制 - 25x槓桿, 5%TP/2%SL"
+    },
+    
+    "M🐦": {
+      "name": "AI Bird",
+      "emoji": "🐦",
+      "ai_advisor": "ai_trading_advisor_kimi.py",
+      "bridge_file": null,
+      "enabled": true,
+      "testnet_enabled": false,
+      "leverage": 25,
+      "tp_pct": 5.0,
+      "sl_pct": 2.0,
+      "min_holding_seconds": 120,
+      "description": "Kimi 控制 - 25x槓桿, 5%TP/2%SL"
+    },
+    
+    "M🐟": {
+      "name": "Fish Market Maker",
+      "emoji": "🐟",
+      "ai_advisor": null,
+      "bridge_file": null,
+      "enabled": true,
+      "testnet_enabled": false,
+      "leverage": 75,
+      "tp_pct": 1.0,
+      "sl_pct": 1.2,
+      "min_holding_seconds": 60,
+      "description": "死魚盤網格造市策略"
+    }
+  },
+  
+  "testnet_priority": ["M🐺", "M🐲", "M🐟"],
+  
+  "leverage_rules": {
+    "_comment": "槓桿優先級: AI指定 > 此配置 > MODE_CONFIGS預設",
+    "allow_ai_override": true,
+    "max_leverage": 100,
+    "min_leverage": 5
+  }
+}

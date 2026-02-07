@@ -1,0 +1,32 @@
+{
+  "team_dynamics": {
+    "current_mvp": "Macro",
+    "debate_intensity": "HIGH"
+  },
+  "agent_profiles": {
+    "macro": {
+      "name": "The Whale Predictor",
+      "bias": "Conservative",
+      "weight": 1.0
+    },
+    "micro": {
+      "name": "The Reality Checker",
+      "bias": "Adaptive",
+      "weight": 1.0
+    },
+    "strategist": {
+      "name": "The Strategist",
+      "bias": "Neutral",
+      "weight": 1.0
+    }
+  },
+  "dynamic_parameters": {
+    "max_leverage": 50,
+    "risk_level": "MODERATE"
+  },
+  "model_config": {
+    "provider": "ollama",
+    "model_name": "kimi-k2:1t-cloud"
+  },
+  "recent_adjustments": []
+}
